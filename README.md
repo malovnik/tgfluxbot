@@ -67,7 +67,7 @@ Before running the bot, you need to make the following changes to the code:
 
 1. Replace the line `"version": "ВАШИ_ВЕСА_МОДЕЛИ"` with the ID of your trained FLUX model weights. This will be a string representing the model weights hash, for example:
    ```python
-   "version": "46e0613db2f215b0690b3535b0aa3e6436a517d08e52f6c84549c2bf22bc5f81"
+   "version": "ВАШИ_ВЕСА_МОДЕЛИ"
    ```
 
 2. Replace all mentions of `"ВАШ_ПРЕФИКС_ФЛАКС"` on the string `"ВАШ_ПРЕФИКС_ФЛАКС"` with the codeword used for your FLUX model. This is a secret codeword that is recovered during model training and is necessary for correct results. For example:
@@ -248,7 +248,7 @@ OWNER_CHAT_ID=ваш_идентификатор_чата_telegram
 
 1. Замените строку `"version": "ВАШИ_ВЕСА_МОДЕЛИ"` на идентификатор весов вашей обученной модели FLUX. Это будет строка, представляющая хэш весов модели, например:
    ```python
-   "version": "46e0613db2f215b0690b3535b0aa3e6436a517d08e52f6c84549c2bf22bc5f81"
+   "version": "ВАШИ_ВЕСА_МОДЕЛИ"
    ```
 
 2. Замените все упоминания `"ВАШ_ПРЕФИКС_ФЛАКС"` на кодовое слово, которое используется для вашей модели FLUX. Это секретное кодовое слово, которое восстанавливается при обучении модели и необходимо для получения правильных результатов. Например:
