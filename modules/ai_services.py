@@ -49,7 +49,7 @@ async def generate_prompt(text: str, user_id: int = None) -> Optional[str]:
                 {"role": "user", "content": text}
             ],
             temperature=0.7,
-            max_tokens=MAX_TOKENS,
+            max_completion_tokens=MAX_TOKENS,
             timeout=TIMEOUT
         )
         prompt = response.choices[0].message.content.strip()
@@ -90,7 +90,7 @@ async def analyze_image(image_description: str, user_id: int = None) -> Optional
                 {"role": "user", "content": image_description}
             ],
             temperature=0.7,
-            max_tokens=MAX_TOKENS,
+            max_completion_tokens=MAX_TOKENS,
             timeout=TIMEOUT
         )
         prompt = response.choices[0].message.content.strip()
@@ -205,7 +205,7 @@ async def analyze_image_content(image_path: str, user_id: int = None) -> Optiona
                         ]
                     }
                 ],
-                max_tokens=MAX_TOKENS,
+                max_completion_tokens=MAX_TOKENS,
                 timeout=TIMEOUT
             )
             
