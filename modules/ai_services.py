@@ -300,14 +300,32 @@ async def generate_image(prompt: str, user_id: int) -> Optional[List[str]]:
                 )
                 response.raise_for_status()
                 prediction = response.json()
-                
+
                 # Если генерация завершена, возвращаем URL'ы изображений
                 if prediction.get("status") == "succeeded":
-                    return prediction.get("output")
+                    output = prediction.get("output")
+                    logger.info(f"Генерация завершена успешно. Тип output: {type(output)}, значение: {output}")
+
+                    # Нормализуем output в список
+                    if output is None:
+                        logger.error("Output пустой (None)")
+                        return None
+                    elif isinstance(output, str):
+                        # Если output - одна строка (URL), оборачиваем в список
+                        logger.info(f"Output - одна URL-ссылка, преобразуем в список")
+                        return [output]
+                    elif isinstance(output, list):
+                        # Если output уже список, возвращаем как есть
+                        logger.info(f"Output - список из {len(output)} элементов")
+                        return output
+                    else:
+                        logger.error(f"Неожиданный тип output: {type(output)}")
+                        return None
+
                 elif prediction.get("status") == "failed":
                     logger.error(f"Ошибка при генерации: {prediction.get('error')}")
                     return None
-                    
+
                 # Ждем перед следующей проверкой
                 time.sleep(5)
                 
@@ -395,13 +413,27 @@ async def generate_image_with_params(prompt: str, params: dict) -> List[str]:
                             
                             if status == "succeeded":
                                 # Генерация успешно завершена
-                                output_urls = status_data.get("output", [])
-                                if not output_urls:
-                                    logger.warning("Генерация завершена успешно, но не получены URL изображений")
+                                output = status_data.get("output")
+                                logger.info(f"Генерация завершена успешно. Тип output: {type(output)}, значение: {output}")
+
+                                # Нормализуем output в список
+                                if output is None:
+                                    logger.warning("Генерация завершена успешно, но output пустой (None)")
                                     return None
-                                    
-                                logger.info(f"Изображение успешно сгенерировано с параметрами: {params}")
-                                return output_urls
+                                elif isinstance(output, str):
+                                    # Если output - одна строка (URL), оборачиваем в список
+                                    logger.info(f"Output - одна URL-ссылка, преобразуем в список")
+                                    return [output]
+                                elif isinstance(output, list):
+                                    # Если output уже список, проверяем что он не пустой
+                                    if not output:
+                                        logger.warning("Генерация завершена успешно, но список output пустой")
+                                        return None
+                                    logger.info(f"Изображение успешно сгенерировано с параметрами: {params}. Получено {len(output)} изображений")
+                                    return output
+                                else:
+                                    logger.error(f"Неожиданный тип output: {type(output)}")
+                                    return None
                                 
                             elif status == "failed":
                                 # Произошла ошибка при генерации
