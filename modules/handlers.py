@@ -1123,57 +1123,56 @@ async def prompt_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE
             
             # Генерируем изображения в нескольких циклах
             for cycle in range(1, cycles + 1):
-                if cycles > 1:
+                # В каждом цикле (кроме первого) генерируем новый промпт
+                if cycles > 1 and cycle > 1:
                     await status_message.edit_text(f"🎨 Цикл {cycle}/{cycles}: генерирую промпт...")
-                    
-                    # В каждом цикле (кроме первого) генерируем новый промпт
-                    if cycle > 1:
-                        if request_type == "image":
-                            prompt = await analyze_image(user_request, user_id)
-                        else:
-                            prompt = await generate_prompt(user_request, user_id)
-                            
-                        if not prompt:
-                            await status_message.edit_text(f"⚠️ Ошибка при генерации промпта в цикле {cycle}. Пропускаю...")
-                            continue
-                
-                    # Обновляем статус
-                    if cycles > 1:
-                        await status_message.edit_text(f"🎨 Цикл {cycle}/{cycles}: генерирую изображение (это может занять до 3 минут)...")
+
+                    if request_type == "image":
+                        prompt = await analyze_image(user_request, user_id)
                     else:
-                        await status_message.edit_text("🎨 Генерирую изображение (это может занять до 3 минут)...")
-                    
-                    # Генерируем изображение
-                    image_urls = await generate_image(prompt, user_id)
-                    if not image_urls:
-                        if cycles > 1:
-                            await status_message.edit_text(f"⚠️ Ошибка при генерации изображения в цикле {cycle}. Пропускаю...")
-                            continue
-                        else:
-                            await status_message.edit_text("Произошла ошибка при генерации изображения. Пожалуйста, попробуйте позже.")
-                            return ConversationHandler.END
-                    
-                    # Отправляем все сгенерированные изображения
-                    for url in image_urls:
-                        await context.bot.send_photo(chat_id=update.effective_chat.id, photo=url)
-                    
-                    # Отправляем использованный промпт для справки
-                    cycle_text = f" (цикл {cycle}/{cycles})" if cycles > 1 else ""
-                    await context.bot.send_message(
-                        chat_id=update.effective_chat.id,
-                        text=f"Использованный промпт{cycle_text}:\n`{prompt}`",
-                        parse_mode="Markdown"
-                    )
-                
-                # Удаляем сообщение о статусе
-                await status_message.delete()
-                
-                # Сообщаем о завершении всех циклов
+                        prompt = await generate_prompt(user_request, user_id)
+
+                    if not prompt:
+                        await status_message.edit_text(f"⚠️ Ошибка при генерации промпта в цикле {cycle}. Пропускаю...")
+                        continue
+
+                # Обновляем статус
                 if cycles > 1:
-                    await context.bot.send_message(
-                        chat_id=update.effective_chat.id,
-                        text=f"✅ Генерация завершена! Сгенерировано {cycles} вариант{'ов' if cycles > 1 else ''}."
-                    )
+                    await status_message.edit_text(f"🎨 Цикл {cycle}/{cycles}: генерирую изображение (это может занять до 3 минут)...")
+                else:
+                    await status_message.edit_text("🎨 Генерирую изображение (это может занять до 3 минут)...")
+
+                # Генерируем изображение
+                image_urls = await generate_image(prompt, user_id)
+                if not image_urls:
+                    if cycles > 1:
+                        await status_message.edit_text(f"⚠️ Ошибка при генерации изображения в цикле {cycle}. Пропускаю...")
+                        continue
+                    else:
+                        await status_message.edit_text("Произошла ошибка при генерации изображения. Пожалуйста, попробуйте позже.")
+                        return ConversationHandler.END
+
+                # Отправляем все сгенерированные изображения
+                for url in image_urls:
+                    await context.bot.send_photo(chat_id=update.effective_chat.id, photo=url)
+
+                # Отправляем использованный промпт для справки
+                cycle_text = f" (цикл {cycle}/{cycles})" if cycles > 1 else ""
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text=f"Использованный промпт{cycle_text}:\n`{prompt}`",
+                    parse_mode="Markdown"
+                )
+
+            # Удаляем сообщение о статусе
+            await status_message.delete()
+
+            # Сообщаем о завершении всех циклов
+            if cycles > 1:
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text=f"✅ Генерация завершена! Сгенерировано {cycles} вариант{'ов' if cycles > 1 else ''}."
+                )
                 
         elif query.data == "prompt_retry":
             # Пользователь хочет повторно сгенерировать промпт
