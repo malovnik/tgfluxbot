@@ -220,23 +220,28 @@ async def analyze_image_content(image_path: str, user_id: int = None) -> Optiona
 async def generate_image(prompt: str, user_id: int) -> Optional[List[str]]:
     """
     Отправляет запрос на генерацию изображения через Replicate API.
-    
+
     Args:
         prompt (str): Промпт для генерации изображения
         user_id (int): ID пользователя Telegram
-        
+
     Returns:
         Optional[List[str]]: Список URL сгенерированных изображений или None в случае ошибки
     """
+    logger.info(f"=== НАЧАЛО generate_image ===")
+    logger.info(f"Промпт: {prompt[:100]}...")
+    logger.info(f"User ID: {user_id}")
+
     # Заголовки для запроса
     headers = {
         "Authorization": f"Bearer {REPLICATE_API_TOKEN}",
         "Content-Type": "application/json",
         "Prefer": "wait"
     }
-    
+
     # Получаем настройки пользователя
     settings = get_user_settings(user_id)
+    logger.info(f"Настройки получены: {settings}")
     
     # Формируем данные для запроса
     data = {
