@@ -295,9 +295,16 @@ async def generate_image(prompt: str, user_id: int) -> Optional[List[str]]:
             if not prediction_id:
                 logger.error("Не удалось получить ID предсказания")
                 return None
-                
-            # Проверяем статус генерации каждые 5 секунд
+
+            # Проверяем статус генерации каждые 5 секунд с таймаутом
+            start_time = time.time()
             while True:
+                # Проверяем, не превышен ли лимит времени ожидания
+                elapsed_time = time.time() - start_time
+                if elapsed_time > MAX_WAIT_TIME:
+                    logger.error(f"Превышено максимальное время ожидания генерации ({MAX_WAIT_TIME}s). Elapsed: {elapsed_time:.1f}s")
+                    return None
+
                 response = requests.get(
                     f"https://api.replicate.com/v1/predictions/{prediction_id}",
                     headers=headers,
@@ -305,6 +312,8 @@ async def generate_image(prompt: str, user_id: int) -> Optional[List[str]]:
                 )
                 response.raise_for_status()
                 prediction = response.json()
+
+                logger.info(f"Статус генерации: {prediction.get('status')} (прошло {elapsed_time:.1f}s)")
 
                 # Если генерация завершена, возвращаем URL'ы изображений
                 if prediction.get("status") == "succeeded":

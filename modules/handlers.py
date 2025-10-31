@@ -1173,7 +1173,10 @@ async def prompt_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE
                     chat_id=update.effective_chat.id,
                     text=f"✅ Генерация завершена! Сгенерировано {cycles} вариант{'ов' if cycles > 1 else ''}."
                 )
-                
+
+            # ВАЖНО: Завершаем разговор после генерации изображений
+            return ConversationHandler.END
+
         elif query.data == "prompt_retry":
             # Пользователь хочет повторно сгенерировать промпт
             await query.message.edit_text("🔄 Генерирую новый промпт...")
@@ -1230,7 +1233,8 @@ async def prompt_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE
         elif query.data == "prompt_cancel":
             # Пользователь отменил операцию
             await query.message.edit_text("❌ Операция отменена. Отправьте новый запрос для генерации изображения.")
-    
+            return ConversationHandler.END
+
     except Exception as e:
         logger.error(f"Ошибка при обработке callback_data {query.data}: {e}")
         await query.message.edit_text(f"Произошла ошибка при обработке запроса: {str(e)[:100]}... Попробуйте позже или используйте /cancel для сброса.")
