@@ -1,0 +1,40 @@
+# Environments
+.env
+venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.pytest_cache/
+
+# Logs
+*.log
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Backups
+*.zip
+
+# User settings
+*.pkl
+user_settings.pkl
+
+# Virtual environment
+.venv/ 
