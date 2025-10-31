@@ -265,6 +265,9 @@ async def generate_image(prompt: str, user_id: int) -> Optional[List[str]]:
     
     while retries < MAX_RETRIES:
         try:
+            logger.info(f"Отправка запроса на генерацию изображения. Промпт: {prompt[:100]}...")
+            logger.info(f"Параметры: num_outputs={data['input']['num_outputs']}, aspect_ratio={data['input']['aspect_ratio']}, prompt_strength={data['input']['prompt_strength']}")
+
             # Отправляем запрос на создание предсказания
             response = requests.post(
                 "https://api.replicate.com/v1/predictions",
@@ -272,8 +275,15 @@ async def generate_image(prompt: str, user_id: int) -> Optional[List[str]]:
                 json=data,
                 timeout=TIMEOUT
             )
-            response.raise_for_status()
+            logger.info(f"Статус ответа от Replicate: {response.status_code}")
+
+            if response.status_code != 201 and response.status_code != 200:
+                error_text = response.text
+                logger.error(f"Ошибка от Replicate API: {error_text}")
+                response.raise_for_status()
+
             prediction = response.json()
+            logger.info(f"Получен ответ от Replicate: {prediction}")
             
             # Получаем ID предсказания
             prediction_id = prediction.get("id")
@@ -323,7 +333,7 @@ async def generate_image_with_params(prompt: str, params: dict) -> List[str]:
     logger.info(f"Запуск генерации изображения с пользовательскими параметрами: {params}")
     
     headers = {
-        "Authorization": f"Token {REPLICATE_API_TOKEN}",
+        "Authorization": f"Bearer {REPLICATE_API_TOKEN}",
         "Content-Type": "application/json"
     }
     

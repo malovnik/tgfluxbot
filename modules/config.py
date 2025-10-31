@@ -68,7 +68,7 @@ BENCHMARK_SETTINGS = {
 DEFAULT_NUM_OUTPUTS = 1  # Количество изображений в одном запросе
 DEFAULT_ASPECT_RATIO = "1:1"  # Стандартное соотношение сторон
 DEFAULT_PROMPT_STRENGTH = 0.7  # Стандартная сила промпта
-DEFAULT_OPENAI_MODEL = "gpt-4o-mini-2024-07-18"  # Стандартная модель OpenAI для аналитики
+DEFAULT_OPENAI_MODEL = "gpt-5-nano-2025-08-07"  # Стандартная модель OpenAI для аналитики (самая дешевая)
 DEFAULT_GENERATION_CYCLES = 1  # Количество циклов генерации
 DEFAULT_AUTO_CONFIRM_PROMPT = False  # Автоматическое подтверждение промпта (по умолчанию отключено)
 
@@ -83,6 +83,7 @@ FLUX_MODEL_ID = "flux"  # Идентификатор модели FLUX
 
 # Доступные модели OpenAI для генерации промптов
 OPENAI_MODELS = {
+    "gpt-5-nano-2025-08-07": "GPT-5 Nano (дешёвая)",
     "gpt-4o-mini-2024-07-18": "GPT-4o mini (быстрая)",
     "gpt-4o": "GPT-4o (стандартная)",
     "gpt-4-turbo": "GPT-4 Turbo",
@@ -90,7 +91,7 @@ OPENAI_MODELS = {
     "gpt-4o-2024-05-13": "GPT-4o-1 (точная)",
     "o1-mini-2024-09-12": "GPT1o Mini"
 }
-DEFAULT_OPENAI_MODEL = "gpt-4o-mini-2024-07-18"  # Модель OpenAI по умолчанию
+DEFAULT_OPENAI_MODEL = "gpt-5-nano-2025-08-07"  # Модель OpenAI по умолчанию
 
 # Константы для запросов
 MAX_TOKENS = 16384  # Максимальное количество токенов для генерации текста (обновлено до максимума модели)
