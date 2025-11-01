@@ -167,16 +167,12 @@ async def analyze_image_content(image_path: str, user_id: int = None) -> Optiona
             return None
             
         logger.info(f"Обработка изображения размером {file_size} байт")
-        
-        # Получаем настройки пользователя, если предоставлен ID
-        model = "gpt-4o"  # Для анализа изображений лучше использовать GPT-4o
-        if user_id:
-            settings = get_user_settings(user_id)
-            # Для анализа изображений игнорируем модели, не поддерживающие зрение
-            if "gpt-4" in settings.get("openai_model", DEFAULT_OPENAI_MODEL):
-                model = settings.get("openai_model", DEFAULT_OPENAI_MODEL)
-            
-        logger.info(f"Анализ содержимого изображения с использованием модели {model}")
+
+        # ВАЖНО: Всегда используем gpt-4o-mini для анализа изображений
+        # gpt-5-nano не поддерживает Vision API
+        model = "gpt-4o-mini-2024-07-18"
+
+        logger.info(f"Анализ содержимого изображения с использованием модели {model} (Vision API)")
         
         # Открываем изображение и кодируем его в base64
         with open(image_path, "rb") as image_file:

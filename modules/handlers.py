@@ -1088,14 +1088,19 @@ async def prompt_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE
     """Обрабатывает ответ пользователя на подтверждение промпта."""
     query = update.callback_query
     await query.answer()
-    
+
+    logger.info(f"=== PROMPT_CONFIRMATION ВЫЗВАН ===")
+    logger.info(f"Callback data: {query.data}")
+    logger.info(f"User ID: {query.from_user.id}")
+    logger.info(f"Context user_data keys: {context.user_data.keys()}")
+
     try:
         # Проверяем корректность callback_data
         if query.data not in ["prompt_ok", "prompt_retry", "prompt_cancel"]:
             logger.error(f"Неожиданный формат callback_data: {query.data}")
-            await query.message.edit_text("Произошла ошибка. Используйте /cancel и повторите попытку.")
+            await query.message.edit_text("❌ Произошла ошибка. Используйте /cancel и повторите попытку.")
             return ConversationHandler.END
-        
+
         if query.data == "prompt_ok":
             # Пользователь подтвердил промпт, начинаем генерацию
             user_id = query.from_user.id
@@ -1106,10 +1111,14 @@ async def prompt_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE
             user_request = context.user_data.get("user_request")
             prompt = context.user_data.get("prompt")
             request_type = context.user_data.get("request_type", "text")
-            
+
+            logger.info(f"Получены из context: user_request={user_request is not None}, prompt={prompt is not None}, request_type={request_type}")
+
             # Проверяем, что запрос и промпт существуют
             if not user_request or not prompt:
-                await query.message.edit_text("Произошла ошибка: запрос или промпт не найдены. Пожалуйста, попробуйте снова.")
+                error_msg = f"❌ Произошла ошибка: запрос или промпт не найдены (user_request={user_request is not None}, prompt={prompt is not None}). Пожалуйста, попробуйте снова."
+                logger.error(error_msg)
+                await query.message.edit_text(error_msg)
                 return ConversationHandler.END
             
             # Удаляем сообщение о подтверждении
@@ -1123,58 +1132,69 @@ async def prompt_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE
             
             # Генерируем изображения в нескольких циклах
             for cycle in range(1, cycles + 1):
-                if cycles > 1:
+                # В каждом цикле (кроме первого) генерируем новый промпт
+                if cycles > 1 and cycle > 1:
                     await status_message.edit_text(f"🎨 Цикл {cycle}/{cycles}: генерирую промпт...")
-                    
-                    # В каждом цикле (кроме первого) генерируем новый промпт
-                    if cycle > 1:
-                        if request_type == "image":
-                            prompt = await analyze_image(user_request, user_id)
-                        else:
-                            prompt = await generate_prompt(user_request, user_id)
-                            
-                        if not prompt:
-                            await status_message.edit_text(f"⚠️ Ошибка при генерации промпта в цикле {cycle}. Пропускаю...")
-                            continue
-                
-                    # Обновляем статус
-                    if cycles > 1:
-                        await status_message.edit_text(f"🎨 Цикл {cycle}/{cycles}: генерирую изображение (это может занять до 3 минут)...")
+
+                    if request_type == "image":
+                        prompt = await analyze_image(user_request, user_id)
                     else:
-                        await status_message.edit_text("🎨 Генерирую изображение (это может занять до 3 минут)...")
-                    
-                    # Генерируем изображение
-                    image_urls = await generate_image(prompt, user_id)
-                    if not image_urls:
-                        if cycles > 1:
-                            await status_message.edit_text(f"⚠️ Ошибка при генерации изображения в цикле {cycle}. Пропускаю...")
-                            continue
-                        else:
-                            await status_message.edit_text("Произошла ошибка при генерации изображения. Пожалуйста, попробуйте позже.")
-                            return ConversationHandler.END
-                    
-                    # Отправляем все сгенерированные изображения
-                    for url in image_urls:
-                        await context.bot.send_photo(chat_id=update.effective_chat.id, photo=url)
-                    
-                    # Отправляем использованный промпт для справки
-                    cycle_text = f" (цикл {cycle}/{cycles})" if cycles > 1 else ""
-                    await context.bot.send_message(
-                        chat_id=update.effective_chat.id,
-                        text=f"Использованный промпт{cycle_text}:\n`{prompt}`",
-                        parse_mode="Markdown"
-                    )
-                
-                # Удаляем сообщение о статусе
-                await status_message.delete()
-                
-                # Сообщаем о завершении всех циклов
+                        prompt = await generate_prompt(user_request, user_id)
+
+                    if not prompt:
+                        await status_message.edit_text(f"⚠️ Ошибка при генерации промпта в цикле {cycle}. Пропускаю...")
+                        continue
+
+                # Обновляем статус
                 if cycles > 1:
-                    await context.bot.send_message(
-                        chat_id=update.effective_chat.id,
-                        text=f"✅ Генерация завершена! Сгенерировано {cycles} вариант{'ов' if cycles > 1 else ''}."
-                    )
-                
+                    await status_message.edit_text(f"🎨 Цикл {cycle}/{cycles}: генерирую изображение (это может занять до 3 минут)...")
+                else:
+                    await status_message.edit_text("🎨 Генерирую изображение (это может занять до 3 минут)...")
+
+                # Генерируем изображение
+                logger.info(f">>> Вызов generate_image с промптом: {prompt[:100]}...")
+                image_urls = await generate_image(prompt, user_id)
+                logger.info(f">>> Результат generate_image: {image_urls}")
+
+                if not image_urls:
+                    error_msg = f"❌ Ошибка при генерации изображения в цикле {cycle}/{cycles}. Проверьте логи для деталей." if cycles > 1 else "❌ Произошла ошибка при генерации изображения. Проверьте API ключи и настройки Replicate."
+                    logger.error(f"generate_image вернул None или пустой список")
+                    if cycles > 1:
+                        await status_message.edit_text(error_msg)
+                        continue
+                    else:
+                        await status_message.edit_text(error_msg)
+                        return ConversationHandler.END
+
+                # Отправляем все сгенерированные изображения
+                for url in image_urls:
+                    await context.bot.send_photo(chat_id=update.effective_chat.id, photo=url)
+
+                # Отправляем использованный промпт для справки (обрезаем если слишком длинный)
+                cycle_text = f" (цикл {cycle}/{cycles})" if cycles > 1 else ""
+                max_prompt_length = 1000
+                prompt_display = prompt if len(prompt) <= max_prompt_length else prompt[:max_prompt_length] + "..."
+
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text=f"Использованный промпт{cycle_text}:\n`{prompt_display}`",
+                    parse_mode="Markdown",
+                    read_timeout=30,
+                    write_timeout=30
+                )
+
+            # Удаляем сообщение о статусе
+            await status_message.delete()
+
+            # Сообщаем о завершении всех циклов
+            if cycles > 1:
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text=f"✅ Генерация завершена! Сгенерировано {cycles} вариант{'ов' if cycles > 1 else ''}."
+                )
+
+            # ВАЖНО: Завершаем разговор после генерации изображений
+            return ConversationHandler.END
         elif query.data == "prompt_retry":
             # Пользователь хочет повторно сгенерировать промпт
             await query.message.edit_text("🔄 Генерирую новый промпт...")
@@ -1233,9 +1253,26 @@ async def prompt_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE
             await query.message.edit_text("❌ Операция отменена. Отправьте новый запрос для генерации изображения.")
     
     except Exception as e:
-        logger.error(f"Ошибка при обработке callback_data {query.data}: {e}")
-        await query.message.edit_text(f"Произошла ошибка при обработке запроса: {str(e)[:100]}... Попробуйте позже или используйте /cancel для сброса.")
-    
+        error_details = str(e)
+        logger.error(f"❌ КРИТИЧЕСКАЯ ОШИБКА в prompt_confirmation при обработке {query.data}: {error_details}", exc_info=True)
+
+        # Отправляем пользователю информативное сообщение об ошибке
+        error_message = (
+            f"❌ *Произошла ошибка при обработке запроса*\n\n"
+            f"Тип ошибки: `{type(e).__name__}`\n"
+            f"Детали: `{error_details[:200]}`\n\n"
+            f"Попробуйте:\n"
+            f"• Использовать /cancel и повторить попытку\n"
+            f"• Проверить настройки /settings\n"
+            f"• Обратиться к администратору, если проблема повторяется"
+        )
+
+        try:
+            await query.message.edit_text(error_message, parse_mode="Markdown")
+        except:
+            # Если не удается отредактировать сообщение, отправляем новое
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=error_message, parse_mode="Markdown")
+
     return ConversationHandler.END
 
 async def benchmark_prompt_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
