@@ -163,8 +163,8 @@ async def settings_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # Получаем читаемый статус автоподтверждения промпта
     auto_confirm_status = "Включено ✅" if settings.get('auto_confirm_prompt', False) else "Отключено ❌"
-    
-    await update.message.reply_text(
+
+    settings_text = (
         f"📊 *Текущие настройки*:\n\n"
         f"🖼 Количество изображений: {settings['num_outputs']}\n"
         f"📐 Соотношение сторон: {settings['aspect_ratio']}\n"
@@ -172,11 +172,25 @@ async def settings_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🧠 Модель OpenAI: {openai_model_name}\n"
         f"🔄 Циклов генерации: {settings['generation_cycles']}\n"
         f"🔄 Автоподтверждение промпта: {auto_confirm_status}\n\n"
-        f"Выберите параметр для изменения:",
-        reply_markup=reply_markup,
-        parse_mode="Markdown"
+        f"Выберите параметр для изменения:"
     )
-    
+
+    # Проверяем, вызвано ли это из callback query или из команды
+    if update.callback_query:
+        # Вызвано из callback (например, "Назад к настройкам")
+        await update.callback_query.message.edit_text(
+            settings_text,
+            reply_markup=reply_markup,
+            parse_mode="Markdown"
+        )
+    else:
+        # Вызвано из команды /settings
+        await update.message.reply_text(
+            settings_text,
+            reply_markup=reply_markup,
+            parse_mode="Markdown"
+        )
+
     return SETTINGS
 
 async def settings_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):

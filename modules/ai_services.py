@@ -41,17 +41,23 @@ async def generate_prompt(text: str, user_id: int = None) -> Optional[str]:
             model = settings.get("openai_model", DEFAULT_OPENAI_MODEL)
             
         logger.info(f"Генерация промпта с использованием модели {model}")
-        
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
+
+        # Формируем параметры запроса
+        request_params = {
+            "model": model,
+            "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": text}
             ],
-            temperature=0.7,
-            max_tokens=MAX_TOKENS,
-            timeout=TIMEOUT
-        )
+            "max_completion_tokens": MAX_TOKENS,
+            "timeout": TIMEOUT
+        }
+
+        # gpt-5-nano не поддерживает кастомный temperature (только default=1.0)
+        if model != "gpt-5-nano-2025-08-07":
+            request_params["temperature"] = 0.7
+
+        response = client.chat.completions.create(**request_params)
         prompt = response.choices[0].message.content.strip()
         
         # Добавляем префикс lestarge к промпту, если он еще не добавлен
@@ -82,17 +88,23 @@ async def analyze_image(image_description: str, user_id: int = None) -> Optional
             model = settings.get("openai_model", DEFAULT_OPENAI_MODEL)
             
         logger.info(f"Анализ изображения с использованием модели {model}")
-        
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
+
+        # Формируем параметры запроса
+        request_params = {
+            "model": model,
+            "messages": [
                 {"role": "system", "content": IMAGE_ANALYSIS_PROMPT},
                 {"role": "user", "content": image_description}
             ],
-            temperature=0.7,
-            max_tokens=MAX_TOKENS,
-            timeout=TIMEOUT
-        )
+            "max_completion_tokens": MAX_TOKENS,
+            "timeout": TIMEOUT
+        }
+
+        # gpt-5-nano не поддерживает кастомный temperature (только default=1.0)
+        if model != "gpt-5-nano-2025-08-07":
+            request_params["temperature"] = 0.7
+
+        response = client.chat.completions.create(**request_params)
         prompt = response.choices[0].message.content.strip()
         
         # Добавляем префикс lestarge к промпту, если он еще не добавлен
