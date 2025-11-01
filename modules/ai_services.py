@@ -245,12 +245,21 @@ async def generate_image(prompt: str, user_id: int) -> Optional[List[str]]:
     
     # Получаем настройки пользователя
     settings = get_user_settings(user_id)
-    
+
+    # Добавляем тег в начало промпта (если тег не пустой)
+    prompt_tag = settings.get("prompt_tag", "lestarge")
+    if prompt_tag and not prompt.strip().lower().startswith(prompt_tag.lower()):
+        final_prompt = f"{prompt_tag}, {prompt}"
+    else:
+        final_prompt = prompt
+
+    logger.info(f"Промпт с тегом: {final_prompt[:100]}...")
+
     # Формируем данные для запроса
     data = {
         "version": "b33842d0896aad6018790f120e7c455abb0bcad55c75b5b3bfebf2f7deeb8d3f",
         "input": {
-            "prompt": prompt,
+            "prompt": final_prompt,
             "num_outputs": settings.get("num_outputs", 1),
             "aspect_ratio": settings.get("aspect_ratio", "1:1"),
             "prompt_strength": settings.get("prompt_strength", 0.9),

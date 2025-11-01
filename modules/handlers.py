@@ -12,7 +12,7 @@ from modules.config import (
     AWAITING_CONFIRMATION, SETTINGS,
     SETTING_NUM_OUTPUTS, SETTING_ASPECT_RATIO, SETTING_PROMPT_STRENGTH,
     SETTING_OPENAI_MODEL, SETTING_GENERATION_CYCLES, SETTING_AUTO_CONFIRM_PROMPT,
-    SETTING_AUTO_GENERATE_PROMPT,
+    SETTING_AUTO_GENERATE_PROMPT, SETTING_PROMPT_TAG,
     ASPECT_RATIOS, OPENAI_MODELS,
     logger, AUTHORIZED_USERS, BOT_PRIVATE,
     AWAITING_BENCHMARK_PROMPT, BENCHMARK_SETTINGS, BENCHMARK_PROMPT_STRENGTHS,
@@ -152,6 +152,7 @@ async def settings_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("Уровень следования промпту", callback_data="set_prompt_strength")],
         [InlineKeyboardButton("Модель OpenAI", callback_data="set_openai_model")],
         [InlineKeyboardButton("Количество циклов генерации", callback_data="set_generation_cycles")],
+        [InlineKeyboardButton("Ключевое слово (тег)", callback_data="set_prompt_tag")],
         [InlineKeyboardButton("Автогенерация промпта", callback_data="set_auto_generate_prompt")],
         [InlineKeyboardButton("Автоподтверждение промпта", callback_data="set_auto_confirm_prompt")],
         [InlineKeyboardButton("🔬 Запустить прогон параметров", callback_data="start_benchmark")],
@@ -166,6 +167,8 @@ async def settings_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Получаем читаемые статусы
     auto_confirm_status = "Включено ✅" if settings.get('auto_confirm_prompt', False) else "Отключено ❌"
     auto_generate_status = "Включено ✅" if settings.get('auto_generate_prompt', True) else "Отключено ❌"
+    prompt_tag = settings.get('prompt_tag', 'lestarge')
+    prompt_tag_display = f'"{prompt_tag}"' if prompt_tag else "не задан"
 
     settings_text = (
         f"📊 *Текущие настройки*:\n\n"
@@ -174,6 +177,7 @@ async def settings_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⚖️ Уровень следования промпту: {settings['prompt_strength']}\n"
         f"🧠 Модель OpenAI: {openai_model_name}\n"
         f"🔄 Циклов генерации: {settings['generation_cycles']}\n"
+        f"🏷 Ключевое слово (тег): {prompt_tag_display}\n"
         f"🤖 Автогенерация промпта: {auto_generate_status}\n"
         f"⚡ Автоподтверждение промпта: {auto_confirm_status}\n\n"
         f"Выберите параметр для изменения:"
@@ -302,6 +306,19 @@ async def settings_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             return SETTING_GENERATION_CYCLES
             
+        elif query.data == "set_prompt_tag":
+            # Запрашиваем у пользователя новое ключевое слово (тег)
+            current_tag = settings.get('prompt_tag', 'lestarge')
+            await query.message.edit_text(
+                f"🏷 *Настройка ключевого слова (тега)*\n\n"
+                f"Текущий тег: `{current_tag}`\n\n"
+                f"Ключевое слово автоматически добавляется в начало каждого промпта. "
+                f"Это важно для модели, чтобы она понимала, на чьем обучении генерировать изображение.\n\n"
+                f"Введите новое ключевое слово или отправьте `/cancel` для отмены.",
+                parse_mode="Markdown"
+            )
+            return SETTING_PROMPT_TAG
+
         elif query.data == "set_auto_generate_prompt":
             # Формируем клавиатуру для настройки автогенерации промпта
             keyboard = []
@@ -856,6 +873,52 @@ async def auto_generate_prompt_handler(update: Update, context: ContextTypes.DEF
         logger.error(f"Ошибка при настройке автогенерации промптов: {e}")
         await query.message.edit_text(
             f"❌ Произошла ошибка при настройке автогенерации промптов:\n\n"
+            f"Ошибка: {str(e)[:100]}...\n\n"
+            f"Пожалуйста, попробуйте еще раз или используйте /cancel для сброса."
+        )
+        return ConversationHandler.END
+
+async def prompt_tag_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обрабатывает ввод нового ключевого слова (тега) для промпта."""
+    # Проверяем авторизацию
+    if not await check_authorization(update):
+        await send_unauthorized_message(update)
+        return ConversationHandler.END
+
+    user_id = update.effective_user.id
+    new_tag = update.message.text.strip()
+
+    # Валидация тега
+    if len(new_tag) > 100:
+        await update.message.reply_text(
+            "⚠️ Ключевое слово слишком длинное (максимум 100 символов). "
+            "Пожалуйста, введите более короткое слово или используйте /cancel для отмены."
+        )
+        return SETTING_PROMPT_TAG
+
+    if len(new_tag) < 1:
+        await update.message.reply_text(
+            "⚠️ Ключевое слово не может быть пустым. "
+            "Пожалуйста, введите слово или используйте /cancel для отмены."
+        )
+        return SETTING_PROMPT_TAG
+
+    try:
+        # Сохраняем новый тег в настройках
+        update_user_settings(user_id, "prompt_tag", new_tag)
+
+        await update.message.reply_text(f"✅ Ключевое слово (тег) успешно обновлено на: `{new_tag}`", parse_mode="Markdown")
+
+        # Задержка для отображения подтверждения
+        await asyncio.sleep(1)
+
+        # Возвращаемся в меню настроек
+        return await settings_command(update, context)
+
+    except Exception as e:
+        logger.error(f"Ошибка при обновлении тега: {e}")
+        await update.message.reply_text(
+            f"❌ Произошла ошибка при обновлении тега:\n\n"
             f"Ошибка: {str(e)[:100]}...\n\n"
             f"Пожалуйста, попробуйте еще раз или используйте /cancel для сброса."
         )

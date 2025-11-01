@@ -20,7 +20,7 @@ from modules.config import (
     SETTING_GENERATION_CYCLES, AWAITING_BENCHMARK_PROMPT, AWAITING_CONFIRMATION,
     logger,
     AWAITING_BENCHMARK_OPTIONS, AWAITING_BENCHMARK_COUNT,
-    SETTING_AUTO_CONFIRM_PROMPT, SETTING_AUTO_GENERATE_PROMPT
+    SETTING_AUTO_CONFIRM_PROMPT, SETTING_AUTO_GENERATE_PROMPT, SETTING_PROMPT_TAG
 )
 from modules.handlers import (
     start, help_command, cancel_command, settings_command,
@@ -29,7 +29,7 @@ from modules.handlers import (
     handle_photo_message, prompt_confirmation, openai_model_handler,
     generation_cycles_handler, handle_aspect_ratio_message, benchmark_prompt_handler,
     benchmark_options_handler, benchmark_count_handler,
-    auto_confirm_prompt_handler, auto_generate_prompt_handler
+    auto_confirm_prompt_handler, auto_generate_prompt_handler, prompt_tag_handler
 )
 
 warnings.filterwarnings('ignore')
@@ -91,6 +91,7 @@ def main():
                 SETTING_PROMPT_STRENGTH: [CallbackQueryHandler(prompt_strength_handler)],
                 SETTING_OPENAI_MODEL: [CallbackQueryHandler(openai_model_handler)],
                 SETTING_GENERATION_CYCLES: [CallbackQueryHandler(generation_cycles_handler)],
+                SETTING_PROMPT_TAG: [MessageHandler(filters.TEXT & ~filters.COMMAND, prompt_tag_handler)],
                 SETTING_AUTO_CONFIRM_PROMPT: [CallbackQueryHandler(auto_confirm_prompt_handler)],
                 SETTING_AUTO_GENERATE_PROMPT: [CallbackQueryHandler(auto_generate_prompt_handler)],
                 AWAITING_BENCHMARK_PROMPT: [MessageHandler(filters.TEXT & ~filters.COMMAND, benchmark_prompt_handler)],

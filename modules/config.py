@@ -44,6 +44,7 @@ AWAITING_CONFIRMATION = 9
 AWAITING_BENCHMARK_OPTIONS = 10  # Ожидание выбора режима прогона параметров
 AWAITING_BENCHMARK_COUNT = 11   # Ожидание ввода количества итераций
 SETTING_AUTO_GENERATE_PROMPT = 12  # Настройка автогенерации промптов
+SETTING_PROMPT_TAG = 13  # Настройка ключевого слова (тега) для промпта
 
 # Настройки для режима прогона параметров
 BENCHMARK_PROMPT_STRENGTHS = [round(0.5 + i * 0.05, 2) for i in range(11)]  # От 0.5 до 1.0 с шагом 0.05
@@ -73,6 +74,7 @@ DEFAULT_OPENAI_MODEL = "gpt-5-nano-2025-08-07"  # Стандартная мод�
 DEFAULT_GENERATION_CYCLES = 1  # Количество циклов генерации
 DEFAULT_AUTO_CONFIRM_PROMPT = False  # Автоматическое подтверждение промпта (по умолчанию отключено)
 DEFAULT_AUTO_GENERATE_PROMPT = True  # Автогенерация промпта через AI (по умолчанию включено)
+DEFAULT_PROMPT_TAG = "lestarge"  # Ключевое слово (тег), добавляемое в начало промпта
 
 # Доступные соотношения сторон
 ASPECT_RATIOS = ["1:1", "16:9", "9:16", "4:3", "3:4"]
@@ -120,7 +122,8 @@ DEFAULT_SETTINGS = {
     "openai_model": DEFAULT_OPENAI_MODEL,
     "generation_cycles": DEFAULT_GENERATION_CYCLES,
     "auto_confirm_prompt": DEFAULT_AUTO_CONFIRM_PROMPT,
-    "auto_generate_prompt": DEFAULT_AUTO_GENERATE_PROMPT
+    "auto_generate_prompt": DEFAULT_AUTO_GENERATE_PROMPT,
+    "prompt_tag": DEFAULT_PROMPT_TAG
 }
 
 # Системная инструкция для ChatGPT (генерация промптов для изображений)
