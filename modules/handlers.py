@@ -1035,13 +1035,18 @@ async def show_prompt_confirmation(update: Update, context, message, prompt):
             # Отправляем все сгенерированные изображения
             for url in image_urls:
                 await context.bot.send_photo(chat_id=update.effective_chat.id, photo=url)
-            
-            # Отправляем использованный промпт для справки
+
+            # Отправляем использованный промпт для справки (обрезаем если слишком длинный)
             cycle_text = f" (цикл {cycle}/{cycles})" if cycles > 1 else ""
+            max_prompt_length = 1000
+            prompt_display = prompt if len(prompt) <= max_prompt_length else prompt[:max_prompt_length] + "..."
+
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
-                text=f"Использованный промпт{cycle_text}:\n`{prompt}`",
-                parse_mode="Markdown"
+                text=f"Использованный промпт{cycle_text}:\n`{prompt_display}`",
+                parse_mode="Markdown",
+                read_timeout=30,
+                write_timeout=30
             )
         
         # Удаляем сообщение о статусе
@@ -1156,12 +1161,17 @@ async def prompt_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE
                 for url in image_urls:
                     await context.bot.send_photo(chat_id=update.effective_chat.id, photo=url)
 
-                # Отправляем использованный промпт для справки
+                # Отправляем использованный промпт для справки (обрезаем если слишком длинный)
                 cycle_text = f" (цикл {cycle}/{cycles})" if cycles > 1 else ""
+                max_prompt_length = 1000
+                prompt_display = prompt if len(prompt) <= max_prompt_length else prompt[:max_prompt_length] + "..."
+
                 await context.bot.send_message(
                     chat_id=update.effective_chat.id,
-                    text=f"Использованный промпт{cycle_text}:\n`{prompt}`",
-                    parse_mode="Markdown"
+                    text=f"Использованный промпт{cycle_text}:\n`{prompt_display}`",
+                    parse_mode="Markdown",
+                    read_timeout=30,
+                    write_timeout=30
                 )
 
             # Удаляем сообщение о статусе
