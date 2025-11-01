@@ -82,7 +82,7 @@ def main():
         ]
         
         # Регистрируем ConversationHandler для настроек
-        conv_handler = ConversationHandler(
+        settings_conv_handler = ConversationHandler(
             entry_points=[CommandHandler("settings", settings_command)],
             states={
                 SETTINGS: [CallbackQueryHandler(settings_handler)],
@@ -95,24 +95,29 @@ def main():
                 AWAITING_BENCHMARK_PROMPT: [MessageHandler(filters.TEXT & ~filters.COMMAND, benchmark_prompt_handler)],
                 AWAITING_BENCHMARK_OPTIONS: [CallbackQueryHandler(benchmark_options_handler)],
                 AWAITING_BENCHMARK_COUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, benchmark_count_handler)],
-                AWAITING_CONFIRMATION: [CallbackQueryHandler(prompt_confirmation)],
             },
             fallbacks=[CommandHandler("cancel", cancel_command)],
         )
-        
+
+        # Регистрируем ConversationHandler для генерации изображений
+        generation_conv_handler = ConversationHandler(
+            entry_points=[
+                MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_message),
+                MessageHandler(filters.VOICE, handle_voice_message),
+                MessageHandler(filters.PHOTO, handle_photo_message)
+            ],
+            states={
+                AWAITING_CONFIRMATION: [CallbackQueryHandler(prompt_confirmation, pattern="^prompt_")],
+            },
+            fallbacks=[CommandHandler("cancel", cancel_command)],
+        )
+
         # Регистрируем обработчики
         application.add_handler(CommandHandler("start", start))
         application.add_handler(CommandHandler("help", help_command))
         application.add_handler(CommandHandler("cancel", cancel_command))
-        application.add_handler(conv_handler)
-        
-        # Регистрируем обработчик для подтверждения промпта
-        application.add_handler(CallbackQueryHandler(prompt_confirmation, pattern="^prompt_"))
-        
-        # Обработчики сообщений
-        application.add_handler(MessageHandler(filters.VOICE, handle_voice_message))
-        application.add_handler(MessageHandler(filters.PHOTO, handle_photo_message))
-        application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_message))
+        application.add_handler(settings_conv_handler)
+        application.add_handler(generation_conv_handler)
         
         # Запускаем бота
         logger.info("Бот запущен и готов к работе")

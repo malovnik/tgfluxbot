@@ -41,17 +41,23 @@ async def generate_prompt(text: str, user_id: int = None) -> Optional[str]:
             model = settings.get("openai_model", DEFAULT_OPENAI_MODEL)
             
         logger.info(f"Генерация промпта с использованием модели {model}")
-        
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
+
+        # Формируем параметры запроса
+        request_params = {
+            "model": model,
+            "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": text}
             ],
-            temperature=0.7,
-            max_tokens=MAX_TOKENS,
-            timeout=TIMEOUT
-        )
+            "max_completion_tokens": MAX_TOKENS,
+            "timeout": TIMEOUT
+        }
+
+        # gpt-5-nano не поддерживает кастомный temperature (только default=1.0)
+        if model != "gpt-5-nano-2025-08-07":
+            request_params["temperature"] = 0.7
+
+        response = client.chat.completions.create(**request_params)
         prompt = response.choices[0].message.content.strip()
         
         # Добавляем префикс lestarge к промпту, если он еще не добавлен
@@ -82,17 +88,23 @@ async def analyze_image(image_description: str, user_id: int = None) -> Optional
             model = settings.get("openai_model", DEFAULT_OPENAI_MODEL)
             
         logger.info(f"Анализ изображения с использованием модели {model}")
-        
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
+
+        # Формируем параметры запроса
+        request_params = {
+            "model": model,
+            "messages": [
                 {"role": "system", "content": IMAGE_ANALYSIS_PROMPT},
                 {"role": "user", "content": image_description}
             ],
-            temperature=0.7,
-            max_tokens=MAX_TOKENS,
-            timeout=TIMEOUT
-        )
+            "max_completion_tokens": MAX_TOKENS,
+            "timeout": TIMEOUT
+        }
+
+        # gpt-5-nano не поддерживает кастомный temperature (только default=1.0)
+        if model != "gpt-5-nano-2025-08-07":
+            request_params["temperature"] = 0.7
+
+        response = client.chat.completions.create(**request_params)
         prompt = response.choices[0].message.content.strip()
         
         # Добавляем префикс lestarge к промпту, если он еще не добавлен
@@ -205,7 +217,7 @@ async def analyze_image_content(image_path: str, user_id: int = None) -> Optiona
                         ]
                     }
                 ],
-                max_tokens=MAX_TOKENS,
+                max_completion_tokens=MAX_TOKENS,
                 timeout=TIMEOUT
             )
             
@@ -220,23 +232,28 @@ async def analyze_image_content(image_path: str, user_id: int = None) -> Optiona
 async def generate_image(prompt: str, user_id: int) -> Optional[List[str]]:
     """
     Отправляет запрос на генерацию изображения через Replicate API.
-    
+
     Args:
         prompt (str): Промпт для генерации изображения
         user_id (int): ID пользователя Telegram
-        
+
     Returns:
         Optional[List[str]]: Список URL сгенерированных изображений или None в случае ошибки
     """
+    logger.info(f"=== НАЧАЛО generate_image ===")
+    logger.info(f"Промпт: {prompt[:100]}...")
+    logger.info(f"User ID: {user_id}")
+
     # Заголовки для запроса
     headers = {
         "Authorization": f"Bearer {REPLICATE_API_TOKEN}",
         "Content-Type": "application/json",
         "Prefer": "wait"
     }
-    
+
     # Получаем настройки пользователя
     settings = get_user_settings(user_id)
+    logger.info(f"Настройки получены: {settings}")
     
     # Формируем данные для запроса
     data = {
@@ -290,9 +307,16 @@ async def generate_image(prompt: str, user_id: int) -> Optional[List[str]]:
             if not prediction_id:
                 logger.error("Не удалось получить ID предсказания")
                 return None
-                
-            # Проверяем статус генерации каждые 5 секунд
+
+            # Проверяем статус генерации каждые 5 секунд с таймаутом
+            start_time = time.time()
             while True:
+                # Проверяем, не превышен ли лимит времени ожидания
+                elapsed_time = time.time() - start_time
+                if elapsed_time > MAX_WAIT_TIME:
+                    logger.error(f"Превышено максимальное время ожидания генерации ({MAX_WAIT_TIME}s). Elapsed: {elapsed_time:.1f}s")
+                    return None
+
                 response = requests.get(
                     f"https://api.replicate.com/v1/predictions/{prediction_id}",
                     headers=headers,
@@ -300,14 +324,34 @@ async def generate_image(prompt: str, user_id: int) -> Optional[List[str]]:
                 )
                 response.raise_for_status()
                 prediction = response.json()
-                
+
+                logger.info(f"Статус генерации: {prediction.get('status')} (прошло {elapsed_time:.1f}s)")
+
                 # Если генерация завершена, возвращаем URL'ы изображений
                 if prediction.get("status") == "succeeded":
-                    return prediction.get("output")
+                    output = prediction.get("output")
+                    logger.info(f"Генерация завершена успешно. Тип output: {type(output)}, значение: {output}")
+
+                    # Нормализуем output в список
+                    if output is None:
+                        logger.error("Output пустой (None)")
+                        return None
+                    elif isinstance(output, str):
+                        # Если output - одна строка (URL), оборачиваем в список
+                        logger.info(f"Output - одна URL-ссылка, преобразуем в список")
+                        return [output]
+                    elif isinstance(output, list):
+                        # Если output уже список, возвращаем как есть
+                        logger.info(f"Output - список из {len(output)} элементов")
+                        return output
+                    else:
+                        logger.error(f"Неожиданный тип output: {type(output)}")
+                        return None
+
                 elif prediction.get("status") == "failed":
                     logger.error(f"Ошибка при генерации: {prediction.get('error')}")
                     return None
-                    
+
                 # Ждем перед следующей проверкой
                 time.sleep(5)
                 
@@ -395,13 +439,27 @@ async def generate_image_with_params(prompt: str, params: dict) -> List[str]:
                             
                             if status == "succeeded":
                                 # Генерация успешно завершена
-                                output_urls = status_data.get("output", [])
-                                if not output_urls:
-                                    logger.warning("Генерация завершена успешно, но не получены URL изображений")
+                                output = status_data.get("output")
+                                logger.info(f"Генерация завершена успешно. Тип output: {type(output)}, значение: {output}")
+
+                                # Нормализуем output в список
+                                if output is None:
+                                    logger.warning("Генерация завершена успешно, но output пустой (None)")
                                     return None
-                                    
-                                logger.info(f"Изображение успешно сгенерировано с параметрами: {params}")
-                                return output_urls
+                                elif isinstance(output, str):
+                                    # Если output - одна строка (URL), оборачиваем в список
+                                    logger.info(f"Output - одна URL-ссылка, преобразуем в список")
+                                    return [output]
+                                elif isinstance(output, list):
+                                    # Если output уже список, проверяем что он не пустой
+                                    if not output:
+                                        logger.warning("Генерация завершена успешно, но список output пустой")
+                                        return None
+                                    logger.info(f"Изображение успешно сгенерировано с параметрами: {params}. Получено {len(output)} изображений")
+                                    return output
+                                else:
+                                    logger.error(f"Неожиданный тип output: {type(output)}")
+                                    return None
                                 
                             elif status == "failed":
                                 # Произошла ошибка при генерации
