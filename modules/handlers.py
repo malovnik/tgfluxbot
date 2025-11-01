@@ -12,7 +12,8 @@ from modules.config import (
     AWAITING_CONFIRMATION, SETTINGS,
     SETTING_NUM_OUTPUTS, SETTING_ASPECT_RATIO, SETTING_PROMPT_STRENGTH,
     SETTING_OPENAI_MODEL, SETTING_GENERATION_CYCLES, SETTING_AUTO_CONFIRM_PROMPT,
-    ASPECT_RATIOS, OPENAI_MODELS, 
+    SETTING_AUTO_GENERATE_PROMPT,
+    ASPECT_RATIOS, OPENAI_MODELS,
     logger, AUTHORIZED_USERS, BOT_PRIVATE,
     AWAITING_BENCHMARK_PROMPT, BENCHMARK_SETTINGS, BENCHMARK_PROMPT_STRENGTHS,
     BENCHMARK_GUIDANCE_SCALES, BENCHMARK_INFERENCE_STEPS, MAX_BENCHMARK_ITERATIONS,
@@ -151,6 +152,7 @@ async def settings_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("Уровень следования промпту", callback_data="set_prompt_strength")],
         [InlineKeyboardButton("Модель OpenAI", callback_data="set_openai_model")],
         [InlineKeyboardButton("Количество циклов генерации", callback_data="set_generation_cycles")],
+        [InlineKeyboardButton("Автогенерация промпта", callback_data="set_auto_generate_prompt")],
         [InlineKeyboardButton("Автоподтверждение промпта", callback_data="set_auto_confirm_prompt")],
         [InlineKeyboardButton("🔬 Запустить прогон параметров", callback_data="start_benchmark")],
         [InlineKeyboardButton("Вернуться к стандартным настройкам", callback_data="reset_settings")],
@@ -161,8 +163,9 @@ async def settings_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Получаем читаемое название модели OpenAI
     openai_model_name = OPENAI_MODELS.get(settings['openai_model'], settings['openai_model'])
     
-    # Получаем читаемый статус автоподтверждения промпта
+    # Получаем читаемые статусы
     auto_confirm_status = "Включено ✅" if settings.get('auto_confirm_prompt', False) else "Отключено ❌"
+    auto_generate_status = "Включено ✅" if settings.get('auto_generate_prompt', True) else "Отключено ❌"
 
     settings_text = (
         f"📊 *Текущие настройки*:\n\n"
@@ -171,7 +174,8 @@ async def settings_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⚖️ Уровень следования промпту: {settings['prompt_strength']}\n"
         f"🧠 Модель OpenAI: {openai_model_name}\n"
         f"🔄 Циклов генерации: {settings['generation_cycles']}\n"
-        f"🔄 Автоподтверждение промпта: {auto_confirm_status}\n\n"
+        f"🤖 Автогенерация промпта: {auto_generate_status}\n"
+        f"⚡ Автоподтверждение промпта: {auto_confirm_status}\n\n"
         f"Выберите параметр для изменения:"
     )
 
@@ -298,6 +302,31 @@ async def settings_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             return SETTING_GENERATION_CYCLES
             
+        elif query.data == "set_auto_generate_prompt":
+            # Формируем клавиатуру для настройки автогенерации промпта
+            keyboard = []
+            keyboard.append([InlineKeyboardButton("Включить ✅", callback_data="auto_generate_true")])
+            keyboard.append([InlineKeyboardButton("Отключить ❌", callback_data="auto_generate_false")])
+            keyboard.append([InlineKeyboardButton("« Назад", callback_data="back_to_settings")])
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            # Отправляем сообщение с клавиатурой
+            await query.message.edit_text(
+                "🤖 Настройка автогенерации промпта:\n\n"
+                "✅ *Включено* (по умолчанию):\n"
+                "• Текст → AI создает детальный промпт\n"
+                "• Голос → транскрибируется + AI создает промпт\n"
+                "• Фото → анализируется + AI создает промпт\n\n"
+                "❌ *Отключено*:\n"
+                "• Текст → используется как есть (промпт напрямую)\n"
+                "• Голос → только транскрипция\n"
+                "• Фото → только описание от Vision API",
+                reply_markup=reply_markup,
+                parse_mode="Markdown"
+            )
+
+            return SETTING_AUTO_GENERATE_PROMPT
+
         elif query.data == "set_auto_confirm_prompt":
             # Формируем клавиатуру для настройки автоподтверждения промпта
             keyboard = []
@@ -305,15 +334,15 @@ async def settings_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             keyboard.append([InlineKeyboardButton("Отключить ❌", callback_data="auto_confirm_false")])
             keyboard.append([InlineKeyboardButton("« Назад", callback_data="back_to_settings")])
             reply_markup = InlineKeyboardMarkup(keyboard)
-            
+
             # Отправляем сообщение с клавиатурой
             await query.message.edit_text(
-                "🔄 Настройка автоматического подтверждения промпта:\n\n"
+                "⚡ Настройка автоматического подтверждения промпта:\n\n"
                 "💡 Если включено, промпт будет автоматически отправляться на генерацию "
                 "без запроса на подтверждение.",
                 reply_markup=reply_markup
             )
-            
+
             return SETTING_AUTO_CONFIRM_PROMPT
             
         elif query.data == "start_benchmark":
@@ -793,6 +822,45 @@ async def auto_confirm_prompt_handler(update: Update, context: ContextTypes.DEFA
         )
         return ConversationHandler.END
 
+async def auto_generate_prompt_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обрабатывает настройку автоматической генерации промптов через AI."""
+    query = update.callback_query
+    await query.answer()
+    user_id = query.from_user.id
+
+    if query.data == "back_to_settings":
+        return await settings_command(update, context)
+
+    try:
+        # Проверяем формат callback_data перед обработкой
+        if not query.data.startswith("auto_generate_"):
+            logger.error(f"Неожиданный формат callback_data: {query.data}")
+            await query.message.edit_text("Произошла ошибка. Используйте /cancel и повторите попытку.")
+            return ConversationHandler.END
+
+        # Извлекаем значение из callback_data
+        auto_generate = query.data == "auto_generate_true"
+        update_user_settings(user_id, "auto_generate_prompt", auto_generate)
+
+        # Показываем подтверждение
+        status = "включена" if auto_generate else "отключена"
+        await query.message.edit_text(f"✅ Автогенерация промптов через AI {status}")
+
+        # Добавляем задержку
+        await asyncio.sleep(1)
+
+        # Возвращаемся в меню настроек
+        return await settings_command(update, context)
+
+    except Exception as e:
+        logger.error(f"Ошибка при настройке автогенерации промптов: {e}")
+        await query.message.edit_text(
+            f"❌ Произошла ошибка при настройке автогенерации промптов:\n\n"
+            f"Ошибка: {str(e)[:100]}...\n\n"
+            f"Пожалуйста, попробуйте еще раз или используйте /cancel для сброса."
+        )
+        return ConversationHandler.END
+
 # =================================================================
 # Обработчики пользовательских запросов
 # =================================================================
@@ -803,29 +871,38 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     if not await check_authorization(update):
         await send_unauthorized_message(update)
         return ConversationHandler.END
-        
+
+    user_id = update.effective_user.id
+    settings = get_user_settings(user_id)
+    user_text = update.message.text
+
     # Сохраняем запрос пользователя в контексте
-    context.user_data["user_request"] = update.message.text
+    context.user_data["user_request"] = user_text
     context.user_data["request_type"] = "text"
-    
+
     # Сообщаем пользователю, что запрос обрабатывается
-    message = await update.message.reply_text("⏳ Обрабатываю ваш текстовый запрос...")
-    
+    message = await update.message.reply_text("⏳ Обрабатываю ваш запрос...")
+
     try:
-        # Получаем ID пользователя для использования выбранной модели
-        user_id = update.effective_user.id
-        
-        # Генерируем промпт через ChatGPT
-        prompt = await generate_prompt(update.message.text, user_id)
-        if not prompt:
-            await message.edit_text("Произошла ошибка при создании промпта. Пожалуйста, попробуйте позже.")
-            return ConversationHandler.END
-        
+        # Проверяем настройку автогенерации промпта
+        auto_generate = settings.get("auto_generate_prompt", True)
+
+        if auto_generate:
+            # Генерируем промпт через ChatGPT
+            prompt = await generate_prompt(user_text, user_id)
+            if not prompt:
+                await message.edit_text("Произошла ошибка при создании промпта. Пожалуйста, попробуйте позже.")
+                return ConversationHandler.END
+        else:
+            # Используем текст напрямую как промпт
+            prompt = user_text
+            logger.info(f"Автогенерация отключена, используем текст напрямую: {prompt[:100]}...")
+
         # Сохраняем промпт в контексте
         context.user_data["prompt"] = prompt
-        
+
         return await show_prompt_confirmation(update, context, message, prompt)
-        
+
     except Exception as e:
         logger.error(f"Произошла ошибка при обработке текстового сообщения: {e}")
         await message.edit_text("Произошла непредвиденная ошибка. Пожалуйста, попробуйте позже.")
@@ -891,22 +968,30 @@ async def handle_voice_message(update: Update, context: ContextTypes.DEFAULT_TYP
         # Сохраняем распознанный текст в контексте
         context.user_data["user_request"] = transcription
         context.user_data["request_type"] = "voice"
-        
-        # Информируем пользователя о распознанном тексте
-        await message.edit_text(f"🎤 Распознанный текст:\n\n{transcription}\n\n⏳ Генерирую промпт...")
-        
-        # Получаем ID пользователя для использования выбранной модели
+
+        # Получаем ID пользователя и настройки
         user_id = update.effective_user.id
-        
-        # Генерируем промпт через ChatGPT с использованием выбранной модели
-        prompt = await generate_prompt(transcription, user_id)
-        if not prompt:
-            await message.edit_text("Произошла ошибка при создании промпта. Пожалуйста, попробуйте позже.")
-            return ConversationHandler.END
-        
+        settings = get_user_settings(user_id)
+        auto_generate = settings.get("auto_generate_prompt", True)
+
+        if auto_generate:
+            # Информируем пользователя о распознанном тексте и генерации промпта
+            await message.edit_text(f"🎤 Распознанный текст:\n\n{transcription}\n\n⏳ Генерирую промпт...")
+
+            # Генерируем промпт через ChatGPT
+            prompt = await generate_prompt(transcription, user_id)
+            if not prompt:
+                await message.edit_text("Произошла ошибка при создании промпта. Пожалуйста, попробуйте позже.")
+                return ConversationHandler.END
+        else:
+            # Используем транскрипцию напрямую как промпт
+            prompt = transcription
+            await message.edit_text(f"🎤 Распознанный текст (используется как промпт):\n\n{transcription}")
+            logger.info(f"Автогенерация отключена, используем транскрипцию напрямую: {prompt[:100]}...")
+
         # Сохраняем промпт в контексте
         context.user_data["prompt"] = prompt
-        
+
         return await show_prompt_confirmation(update, context, message, prompt)
         
     except Exception as e:
@@ -977,19 +1062,29 @@ async def handle_photo_message(update: Update, context: ContextTypes.DEFAULT_TYP
         # Сохраняем описание изображения в контексте
         context.user_data["user_request"] = image_description
         context.user_data["request_type"] = "image"
-        
-        # Информируем пользователя о том, что изображение проанализировано
-        await message.edit_text("🖼 Изображение проанализировано. Генерирую промпт...")
-        
-        # Генерируем промпт на основе описания изображения с использованием выбранной модели
-        prompt = await analyze_image(image_description, user_id)
-        if not prompt:
-            await message.edit_text("Произошла ошибка при создании промпта. Пожалуйста, попробуйте позже.")
-            return ConversationHandler.END
-        
+
+        # Получаем настройки пользователя
+        settings = get_user_settings(user_id)
+        auto_generate = settings.get("auto_generate_prompt", True)
+
+        if auto_generate:
+            # Информируем пользователя о том, что изображение проанализировано
+            await message.edit_text("🖼 Изображение проанализировано. Генерирую промпт...")
+
+            # Генерируем промпт на основе описания изображения
+            prompt = await analyze_image(image_description, user_id)
+            if not prompt:
+                await message.edit_text("Произошла ошибка при создании промпта. Пожалуйста, попробуйте позже.")
+                return ConversationHandler.END
+        else:
+            # Используем описание от Vision API напрямую как промпт
+            prompt = image_description
+            await message.edit_text(f"🖼 Описание изображения (используется как промпт):\n\n{image_description[:300]}...")
+            logger.info(f"Автогенерация отключена, используем описание Vision API напрямую: {prompt[:100]}...")
+
         # Сохраняем промпт в контексте
         context.user_data["prompt"] = prompt
-        
+
         return await show_prompt_confirmation(update, context, message, prompt)
         
     except Exception as e:

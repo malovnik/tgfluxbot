@@ -43,6 +43,7 @@ AWAITING_BENCHMARK_PROMPT = 8
 AWAITING_CONFIRMATION = 9
 AWAITING_BENCHMARK_OPTIONS = 10  # Ожидание выбора режима прогона параметров
 AWAITING_BENCHMARK_COUNT = 11   # Ожидание ввода количества итераций
+SETTING_AUTO_GENERATE_PROMPT = 12  # Настройка автогенерации промптов
 
 # Настройки для режима прогона параметров
 BENCHMARK_PROMPT_STRENGTHS = [round(0.5 + i * 0.05, 2) for i in range(11)]  # От 0.5 до 1.0 с шагом 0.05
@@ -71,6 +72,7 @@ DEFAULT_PROMPT_STRENGTH = 0.7  # Стандартная сила промпта
 DEFAULT_OPENAI_MODEL = "gpt-5-nano-2025-08-07"  # Стандартная модель OpenAI для аналитики (самая дешевая)
 DEFAULT_GENERATION_CYCLES = 1  # Количество циклов генерации
 DEFAULT_AUTO_CONFIRM_PROMPT = False  # Автоматическое подтверждение промпта (по умолчанию отключено)
+DEFAULT_AUTO_GENERATE_PROMPT = True  # Автогенерация промпта через AI (по умолчанию включено)
 
 # Доступные соотношения сторон
 ASPECT_RATIOS = ["1:1", "16:9", "9:16", "4:3", "3:4"]
@@ -116,7 +118,9 @@ DEFAULT_SETTINGS = {
     "extra_lora_scale": 1,
     "num_inference_steps": 36,
     "openai_model": DEFAULT_OPENAI_MODEL,
-    "generation_cycles": DEFAULT_GENERATION_CYCLES
+    "generation_cycles": DEFAULT_GENERATION_CYCLES,
+    "auto_confirm_prompt": DEFAULT_AUTO_CONFIRM_PROMPT,
+    "auto_generate_prompt": DEFAULT_AUTO_GENERATE_PROMPT
 }
 
 # Системная инструкция для ChatGPT (генерация промптов для изображений)
