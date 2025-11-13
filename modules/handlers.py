@@ -308,6 +308,7 @@ async def settings_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
         elif query.data == "set_prompt_tag":
             # Запрашиваем у пользователя новое ключевое слово (тег)
+            settings = get_user_settings(user_id)
             current_tag = settings.get('prompt_tag', 'lestarge')
             await query.message.edit_text(
                 f"🏷 *Настройка ключевого слова (тега)*\n\n"
