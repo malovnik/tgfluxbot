@@ -4,7 +4,7 @@
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-exa"],
       "env": {
-        "EXA_API_KEY": "YOUR_EXA_API_KEY_HERE"
+        "EXA_API_KEY": "fd5e1b4e-c2e5-467e-bbf7-2e083b3af8b3"
       }
     }
   }
