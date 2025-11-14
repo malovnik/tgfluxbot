@@ -25,22 +25,24 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 async def generate_prompt(text: str, user_id: int = None) -> Optional[str]:
     """
     Генерирует промпт для создания изображения с помощью ChatGPT.
-    
+
     Args:
         text (str): Запрос пользователя на русском языке
         user_id (int, optional): ID пользователя для получения настроек
-        
+
     Returns:
-        Optional[str]: Промпт на английском языке с префиксом lestarge или None в случае ошибки
+        Optional[str]: Промпт на английском языке с префиксом-ключевым словом или None в случае ошибки
     """
     try:
         # Получаем настройки пользователя, если предоставлен ID
         model = DEFAULT_OPENAI_MODEL
+        keyword = "lestarge"  # Значение по умолчанию
         if user_id:
             settings = get_user_settings(user_id)
             model = settings.get("openai_model", DEFAULT_OPENAI_MODEL)
-            
-        logger.info(f"Генерация промпта с использованием модели {model}")
+            keyword = settings.get("keyword", "lestarge")
+
+        logger.info(f"Генерация промпта с использованием модели {model} и ключевого слова '{keyword}'")
 
         # Формируем параметры запроса
         request_params = {
@@ -59,11 +61,11 @@ async def generate_prompt(text: str, user_id: int = None) -> Optional[str]:
 
         response = client.chat.completions.create(**request_params)
         prompt = response.choices[0].message.content.strip()
-        
-        # Добавляем префикс lestarge к промпту, если он еще не добавлен
-        if not prompt.lower().startswith("lestarge"):
-            prompt = f"lestarge {prompt}"
-            
+
+        # Добавляем префикс-ключевое слово к промпту, если оно задано и еще не добавлено
+        if keyword and not prompt.lower().startswith(keyword.lower()):
+            prompt = f"{keyword} {prompt}"
+
         return prompt
     except Exception as e:
         logger.error(f"Ошибка при генерации промпта: {e}")
@@ -72,22 +74,24 @@ async def generate_prompt(text: str, user_id: int = None) -> Optional[str]:
 async def analyze_image(image_description: str, user_id: int = None) -> Optional[str]:
     """
     Генерирует промпт на основе описания изображения.
-    
+
     Args:
         image_description (str): Описание изображения
         user_id (int, optional): ID пользователя для получения настроек
-        
+
     Returns:
-        Optional[str]: Промпт для создания похожего изображения с человеком 'lestarge' или None в случае ошибки
+        Optional[str]: Промпт для создания похожего изображения с ключевым словом или None в случае ошибки
     """
     try:
         # Получаем настройки пользователя, если предоставлен ID
         model = DEFAULT_OPENAI_MODEL
+        keyword = "lestarge"  # Значение по умолчанию
         if user_id:
             settings = get_user_settings(user_id)
             model = settings.get("openai_model", DEFAULT_OPENAI_MODEL)
-            
-        logger.info(f"Анализ изображения с использованием модели {model}")
+            keyword = settings.get("keyword", "lestarge")
+
+        logger.info(f"Анализ изображения с использованием модели {model} и ключевого слова '{keyword}'")
 
         # Формируем параметры запроса
         request_params = {
@@ -106,11 +110,11 @@ async def analyze_image(image_description: str, user_id: int = None) -> Optional
 
         response = client.chat.completions.create(**request_params)
         prompt = response.choices[0].message.content.strip()
-        
-        # Добавляем префикс lestarge к промпту, если он еще не добавлен
-        if not prompt.lower().startswith("lestarge"):
-            prompt = f"lestarge {prompt}"
-            
+
+        # Добавляем префикс-ключевое слово к промпту, если оно задано и еще не добавлено
+        if keyword and not prompt.lower().startswith(keyword.lower()):
+            prompt = f"{keyword} {prompt}"
+
         return prompt
     except Exception as e:
         logger.error(f"Ошибка при анализе изображения: {e}")
