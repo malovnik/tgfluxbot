@@ -309,13 +309,17 @@ async def settings_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return SETTING_AUTO_CONFIRM_PROMPT
 
         elif query.data == "set_keyword":
+            # Получаем текущие настройки пользователя
+            user_settings = get_user_settings(user_id)
+            current_keyword = user_settings.get('keyword', 'lestarge')
+
             # Запрашиваем у пользователя ключевое слово
             await query.message.edit_text(
                 "🔑 *Настройка ключевого слова*\n\n"
                 "Введите ключевое слово, которое будет добавляться в начало каждого промпта.\n\n"
                 "💡 Это слово используется для активации вашей обученной модели.\n"
                 "Например: `lestarge`, `yourmodel`, `myname` и т.д.\n\n"
-                "Текущее ключевое слово: `" + settings.get('keyword', 'lestarge') + "`",
+                f"Текущее ключевое слово: `{current_keyword}`",
                 parse_mode="Markdown"
             )
 
