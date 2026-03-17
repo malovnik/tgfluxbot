@@ -21,7 +21,6 @@ TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 
 # Токены для работы с API
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
-FAL_API_KEY = os.getenv('FAL_KEY')
 
 # Настройки авторизации
 AUTHORIZED_USERS = [
@@ -68,7 +67,6 @@ BENCHMARK_SETTINGS = {
 DEFAULT_NUM_OUTPUTS = 1  # Количество изображений в одном запросе
 DEFAULT_ASPECT_RATIO = "1:1"  # Стандартное соотношение сторон
 DEFAULT_PROMPT_STRENGTH = 0.7  # Стандартная сила промпта
-DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite-preview"  # Стандартная модель Gemini (самая дешёвая и быстрая)
 DEFAULT_GENERATION_CYCLES = 1  # Количество циклов генерации
 DEFAULT_AUTO_CONFIRM_PROMPT = False  # Автоматическое подтверждение промпта (по умолчанию отключено)
 
@@ -115,7 +113,7 @@ DEFAULT_SETTINGS = {
     "generation_cycles": DEFAULT_GENERATION_CYCLES
 }
 
-# Системная инструкция для ChatGPT (генерация промптов для изображений)
+# Системная инструкция для Gemini (генерация промптов для изображений)
 SYSTEM_PROMPT = """
 # Продвинутый промпт для создания сверхреалистичных и художественно совершенных изображений
 
@@ -263,7 +261,7 @@ Photorealistic portrait of a young male with sun-kissed skin in his 30s, standin
 Hyperrealistic portrait of a 32-year-old Southeast Asian male with weathered bronze skin showing micro pores and fine salt residue, standing contemplatively on Ko Phi Phi beach at precisely 5:43PM during golden magic hour, Rembrandt lighting with 17 distinct warm amber sun flares creating rim lighting on left profile, piercing deep hazel eyes with microexpressions of melancholy and intrigue, precisely 3mm stubble with pepper-salt flecks, windswept dark chestnut hair with sun-bleached tips moving in 7mph coastal breeze, artisanally distressed Italian linen shirt (97% unbuttoned) with visible loose threads and salt stains revealing lean surfer physique with prominent obliques and clavicles, hand-tailored indigo linen shorts with asymmetrical cuffs, barefoot with sand granules adhering to ankles, mysterious noir atmosphere with psychological tension, stratocumulus clouds at 8,000ft with dramatic crepuscular rays, optically precise bokeh of turquoise waves breaking at f/1.2 aperture, 7 silhouettes of indigenous palm trees with individual frond detail on middle distance horizon, vibrantly saturated Andaman Sea (Pantone 3135C) with authentic Thai longtail boats showing peeling paint and weathered wood grain, shot on Hasselblad X2D 100C with Zeiss Otus 85mm prime lens at f/1.2, 1/2500sec, ISO 64, microscopic depth of field focused precisely on left iris, Hoya Pro ND1000 filter, 3-dimensional cinematic ACES color grading with +15 orange in shadows/-7 teal in highlights, custom Kodak Vision3 250D ECN-2 motion picture film negative scan with deliberate halation, optical light leaks from genuine Panavision anamorphic lens, subtle natural vignetting at 23% opacity, dual-source lighting with 42-inch silver-gold reflector creating dramatic chiaroscuro shadows, CineStill 800T-style tungsten-balanced aesthetic with advanced Lightroom Classic tonal curve adjustments by Jose Villa
 """
 
-# Системная инструкция для ChatGPT (анализ изображений)
+# Системная инструкция для Gemini (анализ изображений)
 IMAGE_ANALYSIS_PROMPT = """
 # Продвинутый фреймворк анализа изображений и генерации сверхдетализированных промптов
 

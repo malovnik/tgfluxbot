@@ -801,7 +801,7 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
         # Получаем ID пользователя для использования выбранной модели
         user_id = update.effective_user.id
         
-        # Генерируем промпт через ChatGPT
+        # Генерируем промпт через Gemini
         prompt = await generate_prompt(update.message.text, user_id)
         if not prompt:
             await message.edit_text("Произошла ошибка при создании промпта. Пожалуйста, попробуйте позже.")
@@ -884,7 +884,7 @@ async def handle_voice_message(update: Update, context: ContextTypes.DEFAULT_TYP
         # Получаем ID пользователя для использования выбранной модели
         user_id = update.effective_user.id
         
-        # Генерируем промпт через ChatGPT с использованием выбранной модели
+        # Генерируем промпт через Gemini с использованием выбранной модели
         prompt = await generate_prompt(transcription, user_id)
         if not prompt:
             await message.edit_text("Произошла ошибка при создании промпта. Пожалуйста, попробуйте позже.")

@@ -3,6 +3,7 @@
 """
 
 import os
+import asyncio
 import tempfile
 import base64
 from typing import Optional, List, Dict, Any
@@ -250,14 +251,14 @@ async def generate_image(prompt: str, user_id: int) -> Optional[List[str]]:
         try:
             logger.info(f"Отправка запроса на генерацию. image_size={image_size}, num_images={num_outputs}")
 
-            result = fal_client.subscribe(
-                FAL_MODEL_ID,
-                arguments=arguments,
-                with_logs=True,
-                on_queue_update=lambda update: (
-                    logger.info(f"fal.ai статус: {update}")
-                    if not isinstance(update, fal_client.InProgress)
-                    else None
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(
+                None,
+                lambda: fal_client.subscribe(
+                    FAL_MODEL_ID,
+                    arguments=arguments,
+                    with_logs=True,
+                    on_queue_update=lambda u: logger.info(f"fal.ai прогресс: {u}") if isinstance(u, fal_client.InProgress) else None,
                 ),
             )
 
@@ -274,7 +275,6 @@ async def generate_image(prompt: str, user_id: int) -> Optional[List[str]]:
             logger.error(f"Ошибка при запросе к fal.ai (попытка {retries + 1}/{MAX_RETRIES}): {e}")
             retries += 1
             if retries < MAX_RETRIES:
-                import asyncio
                 await asyncio.sleep(2)
 
     logger.error(f"Не удалось сгенерировать изображение после {MAX_RETRIES} попыток")
@@ -313,11 +313,15 @@ async def generate_image_with_params(prompt: str, params: dict) -> Optional[List
     }
 
     try:
-        result = fal_client.subscribe(
-            FAL_MODEL_ID,
-            arguments=arguments,
-            with_logs=True,
-            on_queue_update=lambda update: None,
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            None,
+            lambda: fal_client.subscribe(
+                FAL_MODEL_ID,
+                arguments=arguments,
+                with_logs=True,
+                on_queue_update=lambda u: None,
+            ),
         )
 
         images = result.get("images", [])
