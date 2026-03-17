@@ -16,7 +16,7 @@ from telegram.ext import (
 from modules.config import (
     MAX_RETRIES, TELEGRAM_TOKEN, AUTHORIZED_USERS,
     BOT_PRIVATE, SETTINGS, AWAITING_PROMPT, SETTING_ASPECT_RATIO,
-    SETTING_NUM_OUTPUTS, SETTING_PROMPT_STRENGTH, SETTING_OPENAI_MODEL,
+    SETTING_NUM_OUTPUTS, SETTING_PROMPT_STRENGTH, SETTING_GEMINI_MODEL,
     SETTING_GENERATION_CYCLES, AWAITING_BENCHMARK_PROMPT, AWAITING_CONFIRMATION,
     logger,
     AWAITING_BENCHMARK_OPTIONS, AWAITING_BENCHMARK_COUNT,
@@ -26,7 +26,7 @@ from modules.handlers import (
     start, help_command, cancel_command, settings_command,
     settings_handler, num_outputs_handler, aspect_ratio_handler,
     prompt_strength_handler, handle_text_message, handle_voice_message,
-    handle_photo_message, prompt_confirmation, openai_model_handler,
+    handle_photo_message, prompt_confirmation, gemini_model_handler,
     generation_cycles_handler, handle_aspect_ratio_message, benchmark_prompt_handler,
     benchmark_options_handler, benchmark_count_handler,
     auto_confirm_prompt_handler
@@ -89,7 +89,7 @@ def main():
                 SETTING_ASPECT_RATIO: [CallbackQueryHandler(aspect_ratio_handler)],
                 SETTING_NUM_OUTPUTS: [CallbackQueryHandler(num_outputs_handler)],
                 SETTING_PROMPT_STRENGTH: [CallbackQueryHandler(prompt_strength_handler)],
-                SETTING_OPENAI_MODEL: [CallbackQueryHandler(openai_model_handler)],
+                SETTING_GEMINI_MODEL: [CallbackQueryHandler(gemini_model_handler)],
                 SETTING_GENERATION_CYCLES: [CallbackQueryHandler(generation_cycles_handler)],
                 SETTING_AUTO_CONFIRM_PROMPT: [CallbackQueryHandler(auto_confirm_prompt_handler)],
                 AWAITING_BENCHMARK_PROMPT: [MessageHandler(filters.TEXT & ~filters.COMMAND, benchmark_prompt_handler)],

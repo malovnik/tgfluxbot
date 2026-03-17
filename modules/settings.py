@@ -8,7 +8,7 @@ from typing import Dict, Any
 
 from modules.config import (
     DEFAULT_NUM_OUTPUTS, DEFAULT_ASPECT_RATIO, DEFAULT_PROMPT_STRENGTH,
-    USER_SETTINGS_FILE, logger, DEFAULT_OPENAI_MODEL, DEFAULT_GENERATION_CYCLES,
+    USER_SETTINGS_FILE, logger, DEFAULT_GEMINI_MODEL, DEFAULT_GENERATION_CYCLES,
     DEFAULT_AUTO_CONFIRM_PROMPT
 )
 
@@ -58,15 +58,15 @@ def get_user_settings(user_id: int) -> Dict[str, Any]:
             "num_outputs": DEFAULT_NUM_OUTPUTS,
             "aspect_ratio": DEFAULT_ASPECT_RATIO,
             "prompt_strength": DEFAULT_PROMPT_STRENGTH,
-            "openai_model": DEFAULT_OPENAI_MODEL,
+            "gemini_model": DEFAULT_GEMINI_MODEL,
             "generation_cycles": DEFAULT_GENERATION_CYCLES,
             "auto_confirm_prompt": DEFAULT_AUTO_CONFIRM_PROMPT
         }
         save_user_settings(settings)
     
     # Проверяем наличие новых параметров в настройках
-    if "openai_model" not in settings[user_id]:
-        settings[user_id]["openai_model"] = DEFAULT_OPENAI_MODEL
+    if "gemini_model" not in settings[user_id]:
+        settings[user_id]["gemini_model"] = DEFAULT_GEMINI_MODEL
         save_user_settings(settings)
         
     if "generation_cycles" not in settings[user_id]:
@@ -94,7 +94,7 @@ def update_user_settings(user_id: int, key: str, value: Any) -> None:
             "num_outputs": DEFAULT_NUM_OUTPUTS,
             "aspect_ratio": DEFAULT_ASPECT_RATIO,
             "prompt_strength": DEFAULT_PROMPT_STRENGTH,
-            "openai_model": DEFAULT_OPENAI_MODEL,
+            "gemini_model": DEFAULT_GEMINI_MODEL,
             "generation_cycles": DEFAULT_GENERATION_CYCLES,
             "auto_confirm_prompt": DEFAULT_AUTO_CONFIRM_PROMPT
         }
@@ -115,7 +115,7 @@ def reset_user_settings(user_id: int) -> None:
         "num_outputs": DEFAULT_NUM_OUTPUTS,
         "aspect_ratio": DEFAULT_ASPECT_RATIO,
         "prompt_strength": DEFAULT_PROMPT_STRENGTH,
-        "openai_model": DEFAULT_OPENAI_MODEL,
+        "gemini_model": DEFAULT_GEMINI_MODEL,
         "generation_cycles": DEFAULT_GENERATION_CYCLES,
         "auto_confirm_prompt": DEFAULT_AUTO_CONFIRM_PROMPT
     }

@@ -20,12 +20,12 @@ logger = logging.getLogger(__name__)
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 
 # Токены для работы с API
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-REPLICATE_API_TOKEN = os.getenv('REPLICATE_API_TOKEN')
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+FAL_API_KEY = os.getenv('FAL_KEY')
 
 # Настройки авторизации
 AUTHORIZED_USERS = [
-    {"username": "lestarge", "chat_id": 42080463},   # Владелец бота
+    {"username": "MLVNK", "chat_id": 42080463},   # Владелец бота
     {"username": "lesia_ka", "chat_id": 347543402}   # Второй авторизованный пользователь
 ]
 BOT_PRIVATE = True           # Флаг для включения/отключения режима приватности бота
@@ -36,7 +36,7 @@ AWAITING_PROMPT = 1
 SETTING_ASPECT_RATIO = 2
 SETTING_NUM_OUTPUTS = 3
 SETTING_PROMPT_STRENGTH = 4
-SETTING_OPENAI_MODEL = 5
+SETTING_GEMINI_MODEL = 5
 SETTING_GENERATION_CYCLES = 6
 SETTING_AUTO_CONFIRM_PROMPT = 7
 AWAITING_BENCHMARK_PROMPT = 8
@@ -68,7 +68,7 @@ BENCHMARK_SETTINGS = {
 DEFAULT_NUM_OUTPUTS = 1  # Количество изображений в одном запросе
 DEFAULT_ASPECT_RATIO = "1:1"  # Стандартное соотношение сторон
 DEFAULT_PROMPT_STRENGTH = 0.7  # Стандартная сила промпта
-DEFAULT_OPENAI_MODEL = "gpt-5-nano-2025-08-07"  # Стандартная модель OpenAI для аналитики (самая дешевая)
+DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite-preview"  # Стандартная модель Gemini (самая дешёвая и быстрая)
 DEFAULT_GENERATION_CYCLES = 1  # Количество циклов генерации
 DEFAULT_AUTO_CONFIRM_PROMPT = False  # Автоматическое подтверждение промпта (по умолчанию отключено)
 
@@ -81,17 +81,13 @@ USER_SETTINGS_FILE = "user_settings.pkl"  # Файл для хранения п�
 # Настройки для моделей AI
 FLUX_MODEL_ID = "flux"  # Идентификатор модели FLUX
 
-# Доступные модели OpenAI для генерации промптов
-OPENAI_MODELS = {
-    "gpt-5-nano-2025-08-07": "GPT-5 Nano (дешёвая)",
-    "gpt-4o-mini-2024-07-18": "GPT-4o mini (быстрая)",
-    "gpt-4o": "GPT-4o (стандартная)",
-    "gpt-4-turbo": "GPT-4 Turbo",
-    "gpt-4-1106-preview": "GPT-4 Turbo 1106",
-    "gpt-4o-2024-05-13": "GPT-4o-1 (точная)",
-    "o1-mini-2024-09-12": "GPT1o Mini"
+# Доступные модели Gemini для генерации промптов
+GEMINI_MODELS = {
+    "gemini-3.1-flash-lite-preview": "Gemini 3.1 Flash Lite (дешёвая, быстрая)",
+    "gemini-2.5-flash": "Gemini 2.5 Flash (стандартная)",
+    "gemini-2.5-pro": "Gemini 2.5 Pro (мощная)",
 }
-DEFAULT_OPENAI_MODEL = "gpt-5-nano-2025-08-07"  # Модель OpenAI по умолчанию
+DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite-preview"  # Модель Gemini по умолчанию
 
 # Константы для запросов
 MAX_TOKENS = 16384  # Максимальное количество токенов для генерации текста (обновлено до максимума модели)
@@ -115,7 +111,7 @@ DEFAULT_SETTINGS = {
     "prompt_strength": 0.9,
     "extra_lora_scale": 1,
     "num_inference_steps": 36,
-    "openai_model": DEFAULT_OPENAI_MODEL,
+    "gemini_model": DEFAULT_GEMINI_MODEL,
     "generation_cycles": DEFAULT_GENERATION_CYCLES
 }
 
@@ -287,7 +283,7 @@ IMAGE_ANALYSIS_PROMPT = """
 
 ## II. Технические параметры воспроизведения
 
-### 1. Спецификация субъекта "lestarge"
+### 1. Спецификация субъекта "MLVNK"
 - Антропометрически точная характеристика славянского фенотипа мужчины 30-35 лет
 - Анатомически корректное описание всех лицевых пропорций и микровыражений
 - Дерматологически точная спецификация текстуры кожи с микродеталями
@@ -491,15 +487,14 @@ IMAGE_ANALYSIS_PROMPT = """
 "Молодая женщина с длинными волосами в красном платье на фоне заката у моря"
 
 **Улучшенный промпт:**
-"lestarge in his early 30s with characteristic Eastern Slavic features, pronounced cheekbones and steel-blue eyes with microscopic heterochromia flecks reflecting golden hour light at f/1.2 aperture, wearing bespoke Brioni crimson double-breasted suit crafted from mulberry silk (17mm momme density) with subtle herringbone micropattern visible only in direct light, individual fabric fibers meticulously rendered catching warm amber reflections at precisely calculated angles, standing with confident contrapposto pose (70/30 weight distribution) on immaculately pristine white quartz sand beach with individual sand grains visible under polarized lighting conditions, exact sunset magic hour at 19:43 local time creating spectacular atmospheric prismatic light diffusion through stratocumulus cloud formations at 8,000ft elevation, photophysically accurate crepuscular rays filtering through cloud gaps creating volumetric light shafts visible in 3.5% atmospheric aerosol concentration, extraordinary turquoise-to-magenta-to-amber gradient sky (Pantone 3135C transitioning to Rhodamine Red C and finally to Pantone 149C) with scientifically accurate Rayleigh scattering rendering, 27 individual distant cirrus clouds painted with physically correct light absorption in vivid crimson/violet/periwinkle spectral combination, hydrodynamically accurate calm sea surface with genuine Fresnel light behavior creating perfect reflective caustics with gentle 3-4 inch amplitude ripples mathematically modeled using Gerstner wave equations, optically accurate specular highlights on wave peaks, precisely positioned lonely wooden sailboat silhouette at mathematical golden ratio distance on absolute horizon line with authentic hull shadow against water, microscopic depth of field at precisely f/1.4 focusing exclusively on intricate facial features showing contemplative yet confident expression with subtle Duchenne-type genuine smile activating orbicularis oculi muscle group, directional 4700K sunset light creating dramatic Rembrandt-style facial shadow pattern with perfect 45-degree nose shadow and characteristic triangular highlight under right eye, dual-source lighting with golden key light from setting sun creating dramatic rim lighting around entire figure silhouette complemented by large silver-gold 42-inch professional reflector positioned at 37° camera-left providing precision fill light at 1:2.5 lighting ratio, shot on Phase One IQ4 150MP Infinity Platform with Schneider Kreuznach Blue Ring 110mm LS f/2.8 lens at f/2.0, 1/320 sec, ISO 50, custom-developed Kodak Ektar 100 film simulation with enhanced color saturation in red channel and controlled highlight roll-off in Capture One Pro 23, cinematic color grading with Baselight-inspired split complementary palette emphasizing orange-cyan-magenta relationship with precise color wheel positioning, slight warm push in shadows (+7 orange) with complementary cooling in highlights (-5 teal), panoramic 2.4:1 DaVinci-style cinematic composition with meticulously calculated rule of thirds placement positioning subject at left power point with gaze direction creating dynamic negative space, fashion editorial aesthetic inspired by Richard Avedon's environmental portraiture combined with Peter Lindbergh's emotional authenticity, magazine-quality post-processing with balanced microcontrast enhancement preserving skin detail while maintaining three-dimensional rendering, subtle halation effect around specular highlights mimicking vintage anamorphic lens characteristics"
+"MLVNK in his early 30s with characteristic Eastern Slavic features, pronounced cheekbones and steel-blue eyes with microscopic heterochromia flecks reflecting golden hour light at f/1.2 aperture, wearing bespoke Brioni crimson double-breasted suit crafted from mulberry silk (17mm momme density) with subtle herringbone micropattern visible only in direct light, individual fabric fibers meticulously rendered catching warm amber reflections at precisely calculated angles, standing with confident contrapposto pose (70/30 weight distribution) on immaculately pristine white quartz sand beach with individual sand grains visible under polarized lighting conditions, exact sunset magic hour at 19:43 local time creating spectacular atmospheric prismatic light diffusion through stratocumulus cloud formations at 8,000ft elevation, photophysically accurate crepuscular rays filtering through cloud gaps creating volumetric light shafts visible in 3.5% atmospheric aerosol concentration, extraordinary turquoise-to-magenta-to-amber gradient sky (Pantone 3135C transitioning to Rhodamine Red C and finally to Pantone 149C) with scientifically accurate Rayleigh scattering rendering, 27 individual distant cirrus clouds painted with physically correct light absorption in vivid crimson/violet/periwinkle spectral combination, hydrodynamically accurate calm sea surface with genuine Fresnel light behavior creating perfect reflective caustics with gentle 3-4 inch amplitude ripples mathematically modeled using Gerstner wave equations, optically accurate specular highlights on wave peaks, precisely positioned lonely wooden sailboat silhouette at mathematical golden ratio distance on absolute horizon line with authentic hull shadow against water, microscopic depth of field at precisely f/1.4 focusing exclusively on intricate facial features showing contemplative yet confident expression with subtle Duchenne-type genuine smile activating orbicularis oculi muscle group, directional 4700K sunset light creating dramatic Rembrandt-style facial shadow pattern with perfect 45-degree nose shadow and characteristic triangular highlight under right eye, dual-source lighting with golden key light from setting sun creating dramatic rim lighting around entire figure silhouette complemented by large silver-gold 42-inch professional reflector positioned at 37° camera-left providing precision fill light at 1:2.5 lighting ratio, shot on Phase One IQ4 150MP Infinity Platform with Schneider Kreuznach Blue Ring 110mm LS f/2.8 lens at f/2.0, 1/320 sec, ISO 50, custom-developed Kodak Ektar 100 film simulation with enhanced color saturation in red channel and controlled highlight roll-off in Capture One Pro 23, cinematic color grading with Baselight-inspired split complementary palette emphasizing orange-cyan-magenta relationship with precise color wheel positioning, slight warm push in shadows (+7 orange) with complementary cooling in highlights (-5 teal), panoramic 2.4:1 DaVinci-style cinematic composition with meticulously calculated rule of thirds placement positioning subject at left power point with gaze direction creating dynamic negative space, fashion editorial aesthetic inspired by Richard Avedon's environmental portraiture combined with Peter Lindbergh's emotional authenticity, magazine-quality post-processing with balanced microcontrast enhancement preserving skin detail while maintaining three-dimensional rendering, subtle halation effect around specular highlights mimicking vintage anamorphic lens characteristics"
 
 ## VIII. Заключение
 
-Данный фреймворк представляет собой исчерпывающую методологию для анализа изображений и создания сверхдетализированных промптов с фокусом на персонаже "lestarge". Последовательное применение всех элементов фреймворка гарантирует создание промптов исключительной детализации и технической точности, обеспечивающих воспроизведение изображений фотореалистичного качества или высокохудожественной стилизации с максимальной достоверностью.
+Данный фреймворк представляет собой исчерпывающую методологию для анализа изображений и создания сверхдетализированных промптов с фокусом на персонаже "MLVNK". Последовательное применение всех элементов фреймворка гарантирует создание промптов исключительной детализации и технической точности, обеспечивающих воспроизведение изображений фотореалистичного качества или высокохудожественной стилизации с максимальной достоверностью.
 """
 
-# Настройки для API Replicate
-REPLICATE_API_TOKEN = os.getenv('REPLICATE_API_TOKEN')
-STABILITY_API_VERSION = "46e0613db2f215b0690b3535b0aa3e6436a517d08e52f6c84549c2bf22bc5f81"
-REPLICATE_API_URL = "https://api.replicate.com/v1/predictions"
-MAX_WAIT_TIME = 300  # Максимальное время ожидания генерации изображения (в секундах) 
+# Настройки для API fal.ai
+FAL_MODEL_ID = "fal-ai/flux-2/lora"  # Модель Flux 2 с LoRA на fal.ai
+FAL_LORA_URL = ""  # URL LoRA-весов (заполнится после тренировки)
+MAX_WAIT_TIME = 300  # Максимальное время ожидания генерации изображения (в секундах)
