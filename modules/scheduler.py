@@ -4,8 +4,7 @@
 """
 
 import io
-from datetime import time, timedelta
-from typing import List
+from datetime import time
 
 from telegram import InputMediaPhoto
 from telegram.ext import ContextTypes
@@ -185,7 +184,6 @@ def setup_scheduled_jobs(application, user_id: int, chat_id: int) -> None:
 def remove_scheduled_jobs(application, user_id: int) -> None:
     """Удаляет все scheduled jobs для пользователя."""
     job_name_prefix = f"photoshoot_{user_id}"
-    current_jobs = application.job_queue.get_jobs_by_name(job_name_prefix)
 
     # get_jobs_by_name ищет по точному имени, поэтому ищем по всем дням
     for day in range(7):

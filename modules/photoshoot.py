@@ -387,11 +387,13 @@ def generate_photoshoot_config(num_photos: int = 10) -> PhotoshootConfig:
 # Генерация промптов через Gemini
 # ─────────────────────────────────────────────
 
-gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 
 async def generate_photoshoot_prompts(config: PhotoshootConfig) -> List[str]:
     """Генерирует 10 детальных промптов через Gemini за 1 запрос."""
+    if not gemini_client:
+        raise RuntimeError("GEMINI_API_KEY не задан — невозможно генерировать промпты")
 
     poses_str = "\n".join(
         f"Image {i+1}: {pose}" for i, pose in enumerate(config.poses)
@@ -419,13 +421,17 @@ async def generate_photoshoot_prompts(config: PhotoshootConfig) -> List[str]:
 
     logger.info(f"Генерация {config.num_photos} промптов через Gemini")
 
-    response = gemini_client.models.generate_content(
-        model="gemini-2.5-flash",
-        config=types.GenerateContentConfig(
-            temperature=0.8,
-            max_output_tokens=16384,
+    loop = asyncio.get_running_loop()
+    response = await loop.run_in_executor(
+        None,
+        lambda: gemini_client.models.generate_content(
+            model="gemini-2.5-flash",
+            config=types.GenerateContentConfig(
+                temperature=0.8,
+                max_output_tokens=16384,
+            ),
+            contents=meta_prompt,
         ),
-        contents=meta_prompt,
     )
 
     raw = response.text.strip()
@@ -502,7 +508,7 @@ async def _generate_single(prompt: str, orientation: str) -> dict:
         "loras": loras,
     }
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     result = await loop.run_in_executor(
         None,
         lambda: fal_client.subscribe(
@@ -525,7 +531,7 @@ async def _generate_single(prompt: str, orientation: str) -> dict:
 
 async def download_images(image_results: List[dict]) -> List[bytes]:
     """Скачивает все изображения по URL, возвращает байты."""
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     downloaded = []
 
     for i, img in enumerate(image_results):
@@ -608,6 +614,9 @@ async def run_photoshoot(
         await progress_callback(-1, num_photos, "Скачивание изображений...")
 
     image_bytes = await download_images(image_results)
+
+    if not image_bytes:
+        raise RuntimeError("Не удалось скачать ни одного изображения")
 
     # 5. ZIP
     zip_bytes = build_zip(image_bytes, session_name)

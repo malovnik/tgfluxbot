@@ -251,7 +251,7 @@ async def generate_image(prompt: str, user_id: int) -> Optional[List[str]]:
         try:
             logger.info(f"Отправка запроса на генерацию. image_size={image_size}, num_images={num_outputs}")
 
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             result = await loop.run_in_executor(
                 None,
                 lambda: fal_client.subscribe(
@@ -313,7 +313,7 @@ async def generate_image_with_params(prompt: str, params: dict) -> Optional[List
     }
 
     try:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         result = await loop.run_in_executor(
             None,
             lambda: fal_client.subscribe(

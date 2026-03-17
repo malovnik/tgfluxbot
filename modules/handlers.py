@@ -1625,8 +1625,36 @@ async def photoshoot_schedule_handler(update: Update, context: ContextTypes.DEFA
             setup_scheduled_jobs(context.application, user_id, chat_id)
 
     elif data == "ps_back":
-        # Возвращаемся в меню настроек
-        return await settings_command(update, context)
+        # Возвращаемся в меню настроек через edit существующего сообщения
+        user_id_back = query.from_user.id
+        settings = get_user_settings(user_id_back)
+        gemini_model_name = GEMINI_MODELS.get(settings['gemini_model'], settings['gemini_model'])
+        auto_confirm_status = "Включено" if settings.get('auto_confirm_prompt', False) else "Отключено"
+
+        keyboard = [
+            [InlineKeyboardButton("Количество изображений", callback_data="set_num_outputs")],
+            [InlineKeyboardButton("Соотношение сторон", callback_data="set_aspect_ratio")],
+            [InlineKeyboardButton("Уровень следования промпту", callback_data="set_prompt_strength")],
+            [InlineKeyboardButton("Модель Gemini", callback_data="set_gemini_model")],
+            [InlineKeyboardButton("Количество циклов генерации", callback_data="set_generation_cycles")],
+            [InlineKeyboardButton("Автоподтверждение промпта", callback_data="set_auto_confirm_prompt")],
+            [InlineKeyboardButton("Расписание фотосессий", callback_data="set_photoshoot_schedule")],
+            [InlineKeyboardButton("Запустить прогон параметров", callback_data="start_benchmark")],
+            [InlineKeyboardButton("Вернуться к стандартным настройкам", callback_data="reset_settings")],
+            [InlineKeyboardButton("Закрыть настройки", callback_data="close_settings")]
+        ]
+        await query.message.edit_text(
+            f"Текущие настройки:\n\n"
+            f"Количество изображений: {settings['num_outputs']}\n"
+            f"Соотношение сторон: {settings['aspect_ratio']}\n"
+            f"Уровень следования промпту: {settings['prompt_strength']}\n"
+            f"Модель Gemini: {gemini_model_name}\n"
+            f"Циклов генерации: {settings['generation_cycles']}\n"
+            f"Автоподтверждение промпта: {auto_confirm_status}\n\n"
+            f"Выберите параметр для изменения:",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
+        return SETTINGS
 
     # Показываем обновлённое меню расписания
     await _show_schedule_menu(query, schedule)
