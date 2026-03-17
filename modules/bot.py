@@ -5,19 +5,18 @@
 import os
 import logging
 import sys
-import asyncio
 import warnings
-from telegram import Update
 from telegram.ext import (
     Application, CommandHandler, MessageHandler, CallbackQueryHandler,
     ConversationHandler, filters
 )
 
 from modules.config import (
-    MAX_RETRIES, TELEGRAM_TOKEN, AUTHORIZED_USERS,
-    BOT_PRIVATE, SETTINGS, AWAITING_PROMPT, SETTING_ASPECT_RATIO,
+    AUTHORIZED_USERS,
+    BOT_PRIVATE, SETTINGS, SETTING_ASPECT_RATIO,
     SETTING_NUM_OUTPUTS, SETTING_PROMPT_STRENGTH, SETTING_GEMINI_MODEL,
     SETTING_GENERATION_CYCLES, AWAITING_BENCHMARK_PROMPT, AWAITING_CONFIRMATION,
+    SETTING_PHOTOSHOOT_SCHEDULE,
     logger,
     AWAITING_BENCHMARK_OPTIONS, AWAITING_BENCHMARK_COUNT,
     SETTING_AUTO_CONFIRM_PROMPT
@@ -29,59 +28,45 @@ from modules.handlers import (
     handle_photo_message, prompt_confirmation, gemini_model_handler,
     generation_cycles_handler, handle_aspect_ratio_message, benchmark_prompt_handler,
     benchmark_options_handler, benchmark_count_handler,
-    auto_confirm_prompt_handler
+    auto_confirm_prompt_handler,
+    photoshoot_command, photoshoot_schedule_handler
 )
 
 warnings.filterwarnings('ignore')
 
+
 def setup_logging():
     """Настраивает логирование для бота."""
-    # Создаем директорию для логов, если она не существует
     if not os.path.exists('logs'):
         os.makedirs('logs')
-    
-    # Настраиваем логирование в файл
+
     file_handler = logging.FileHandler('logs/bot.log')
     file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
     logger.addHandler(file_handler)
-    
-    # Устанавливаем уровень логирования
     logger.setLevel(logging.INFO)
-    
     logger.info("Логирование настроено")
+
 
 def main():
     """Основная функция для запуска бота."""
     try:
-        # Настройка и запуск бота
         token = os.getenv("TELEGRAM_TOKEN")
         if not token:
             logger.critical("TELEGRAM_TOKEN отсутствует в .env файле. Бот не может быть запущен.")
             sys.exit(1)
-            
-        # Настраиваем логирование
+
         setup_logging()
-        
-        # Вывод информации о режиме бота
+
         if BOT_PRIVATE:
-            authorized_usernames = [user["username"] for user in AUTHORIZED_USERS if "username" in user]
-            authorized_ids = [user["chat_id"] for user in AUTHORIZED_USERS if "chat_id" in user]
-            logger.info(f"Бот запускается в приватном режиме. Доступ разрешен только для авторизованных пользователей:")
+            logger.info("Бот запускается в приватном режиме.")
             for user in AUTHORIZED_USERS:
-                logger.info(f"  - @{user.get('username', 'Нет имени')} (ID: {user.get('chat_id', 'Нет ID')})")
+                logger.info(f"  - @{user.get('username', 'N/A')} (ID: {user.get('chat_id', 'N/A')})")
         else:
-            logger.info("Бот запускается в публичном режиме. Доступ открыт для всех пользователей.")
-        
-        # Создаем экземпляр бота
+            logger.info("Бот запускается в публичном режиме.")
+
         application = Application.builder().token(token).build()
-        
-        # Conversation Handler для настроек бота
-        settings_handlers = [
-            CallbackQueryHandler(settings_handler),
-            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_aspect_ratio_message),
-        ]
-        
-        # Регистрируем ConversationHandler для настроек
+
+        # ConversationHandler для настроек
         settings_conv_handler = ConversationHandler(
             entry_points=[CommandHandler("settings", settings_command)],
             states={
@@ -92,6 +77,7 @@ def main():
                 SETTING_GEMINI_MODEL: [CallbackQueryHandler(gemini_model_handler)],
                 SETTING_GENERATION_CYCLES: [CallbackQueryHandler(generation_cycles_handler)],
                 SETTING_AUTO_CONFIRM_PROMPT: [CallbackQueryHandler(auto_confirm_prompt_handler)],
+                SETTING_PHOTOSHOOT_SCHEDULE: [CallbackQueryHandler(photoshoot_schedule_handler)],
                 AWAITING_BENCHMARK_PROMPT: [MessageHandler(filters.TEXT & ~filters.COMMAND, benchmark_prompt_handler)],
                 AWAITING_BENCHMARK_OPTIONS: [CallbackQueryHandler(benchmark_options_handler)],
                 AWAITING_BENCHMARK_COUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, benchmark_count_handler)],
@@ -99,7 +85,7 @@ def main():
             fallbacks=[CommandHandler("cancel", cancel_command)],
         )
 
-        # Регистрируем ConversationHandler для генерации изображений
+        # ConversationHandler для генерации изображений
         generation_conv_handler = ConversationHandler(
             entry_points=[
                 MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_message),
@@ -116,16 +102,17 @@ def main():
         application.add_handler(CommandHandler("start", start))
         application.add_handler(CommandHandler("help", help_command))
         application.add_handler(CommandHandler("cancel", cancel_command))
+        application.add_handler(CommandHandler("photoshoot", photoshoot_command))
         application.add_handler(settings_conv_handler)
         application.add_handler(generation_conv_handler)
-        
-        # Запускаем бота
+
         logger.info("Бот запущен и готов к работе")
         application.run_polling()
-        
+
     except Exception as e:
         logger.critical(f"Критическая ошибка при запуске бота: {e}")
         sys.exit(1)
 
+
 if __name__ == "__main__":
-    main() 
+    main()

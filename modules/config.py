@@ -42,6 +42,7 @@ AWAITING_BENCHMARK_PROMPT = 8
 AWAITING_CONFIRMATION = 9
 AWAITING_BENCHMARK_OPTIONS = 10  # Ожидание выбора режима прогона параметров
 AWAITING_BENCHMARK_COUNT = 11   # Ожидание ввода количества итераций
+SETTING_PHOTOSHOOT_SCHEDULE = 12  # Настройка расписания фотосессий
 
 # Настройки для режима прогона параметров
 BENCHMARK_PROMPT_STRENGTHS = [round(0.5 + i * 0.05, 2) for i in range(11)]  # От 0.5 до 1.0 с шагом 0.05

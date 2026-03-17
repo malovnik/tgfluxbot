@@ -12,6 +12,7 @@ from modules.config import (
     AWAITING_CONFIRMATION, SETTINGS,
     SETTING_NUM_OUTPUTS, SETTING_ASPECT_RATIO, SETTING_PROMPT_STRENGTH,
     SETTING_GEMINI_MODEL, SETTING_GENERATION_CYCLES, SETTING_AUTO_CONFIRM_PROMPT,
+    SETTING_PHOTOSHOOT_SCHEDULE,
     ASPECT_RATIOS, GEMINI_MODELS,
     logger, AUTHORIZED_USERS, BOT_PRIVATE,
     AWAITING_BENCHMARK_PROMPT, BENCHMARK_SETTINGS, BENCHMARK_PROMPT_STRENGTHS,
@@ -22,9 +23,15 @@ from modules.settings import (
     get_user_settings, update_user_settings, reset_user_settings
 )
 from modules.ai_services import (
-    generate_prompt, analyze_image, transcribe_audio, 
+    generate_prompt, analyze_image, transcribe_audio,
     analyze_image_content, generate_image, download_file,
     generate_image_with_params
+)
+from modules.photoshoot import run_photoshoot
+from modules.scheduler import (
+    get_schedule, update_schedule, format_schedule,
+    send_photoshoot_result, setup_scheduled_jobs, remove_scheduled_jobs,
+    DAY_NAMES
 )
 
 # =================================================================
@@ -152,7 +159,8 @@ async def settings_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("Модель Gemini", callback_data="set_gemini_model")],
         [InlineKeyboardButton("Количество циклов генерации", callback_data="set_generation_cycles")],
         [InlineKeyboardButton("Автоподтверждение промпта", callback_data="set_auto_confirm_prompt")],
-        [InlineKeyboardButton("🔬 Запустить прогон параметров", callback_data="start_benchmark")],
+        [InlineKeyboardButton("Расписание фотосессий", callback_data="set_photoshoot_schedule")],
+        [InlineKeyboardButton("Запустить прогон параметров", callback_data="start_benchmark")],
         [InlineKeyboardButton("Вернуться к стандартным настройкам", callback_data="reset_settings")],
         [InlineKeyboardButton("Закрыть настройки", callback_data="close_settings")]
     ]
@@ -302,6 +310,11 @@ async def settings_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             return SETTING_AUTO_CONFIRM_PROMPT
             
+        elif query.data == "set_photoshoot_schedule":
+            schedule = get_schedule(user_id)
+            await _show_schedule_menu(query, schedule)
+            return SETTING_PHOTOSHOOT_SCHEDULE
+
         elif query.data == "start_benchmark":
             # Запрашиваем у пользователя промпт для прогона параметров
             await query.message.edit_text(
@@ -1523,4 +1536,146 @@ async def run_benchmark(update: Update, context: ContextTypes.DEFAULT_TYPE, prom
             parse_mode="Markdown"
         )
     
-    return ConversationHandler.END 
+    return ConversationHandler.END
+
+
+# =================================================================
+# Фотосессии
+# =================================================================
+
+async def photoshoot_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обрабатывает команду /photoshoot — генерирует фотосессию."""
+    if not await check_authorization(update):
+        return
+
+    user_id = update.effective_user.id
+    chat_id = update.effective_chat.id
+
+    status_msg = await update.message.reply_text(
+        "Подготовка фотосессии (10 фото)...\n"
+        "Это займёт 2-5 минут."
+    )
+
+    async def progress_callback(current, total, text=""):
+        try:
+            await status_msg.edit_text(text or f"Генерация {current}/{total}...")
+        except Exception:
+            pass
+
+    try:
+        result = await run_photoshoot(
+            num_photos=10,
+            progress_callback=progress_callback,
+        )
+
+        # Удаляем статусное сообщение
+        try:
+            await status_msg.delete()
+        except Exception:
+            pass
+
+        # Отправляем результат
+        await send_photoshoot_result(context.bot, chat_id, result)
+
+    except Exception as e:
+        logger.error(f"Ошибка фотосессии: {e}")
+        await status_msg.edit_text(f"Ошибка: {str(e)[:200]}")
+
+
+async def photoshoot_schedule_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обрабатывает настройки расписания фотосессий."""
+    query = update.callback_query
+    await query.answer()
+
+    user_id = query.from_user.id
+    chat_id = update.effective_chat.id
+    data = query.data
+
+    schedule = get_schedule(user_id)
+
+    if data == "ps_toggle":
+        schedule["enabled"] = not schedule.get("enabled", False)
+        update_schedule(user_id, schedule)
+
+        if schedule["enabled"]:
+            setup_scheduled_jobs(context.application, user_id, chat_id)
+        else:
+            remove_scheduled_jobs(context.application, user_id)
+
+    elif data.startswith("ps_day_"):
+        day = int(data.replace("ps_day_", ""))
+        days = schedule.get("days", [0, 3])
+        if day in days:
+            days.remove(day)
+        else:
+            days.append(day)
+            days.sort()
+        schedule["days"] = days
+        update_schedule(user_id, schedule)
+
+        if schedule.get("enabled"):
+            setup_scheduled_jobs(context.application, user_id, chat_id)
+
+    elif data.startswith("ps_hour_"):
+        hour = int(data.replace("ps_hour_", ""))
+        schedule["hour"] = hour
+        update_schedule(user_id, schedule)
+
+        if schedule.get("enabled"):
+            setup_scheduled_jobs(context.application, user_id, chat_id)
+
+    elif data == "ps_back":
+        # Возвращаемся в меню настроек
+        return await settings_command(update, context)
+
+    # Показываем обновлённое меню расписания
+    await _show_schedule_menu(query, schedule)
+    return SETTING_PHOTOSHOOT_SCHEDULE
+
+
+async def _show_schedule_menu(query, schedule: dict):
+    """Отображает меню настройки расписания."""
+    enabled = schedule.get("enabled", False)
+    status_emoji = "ON" if enabled else "OFF"
+
+    keyboard = [
+        [InlineKeyboardButton(
+            f"{'Выключить' if enabled else 'Включить'} расписание",
+            callback_data="ps_toggle"
+        )],
+    ]
+
+    if enabled:
+        # Дни недели
+        day_buttons = []
+        current_days = schedule.get("days", [0, 3])
+        for d, name in DAY_NAMES.items():
+            mark = "v " if d in current_days else "  "
+            day_buttons.append(
+                InlineKeyboardButton(f"{mark}{name}", callback_data=f"ps_day_{d}")
+            )
+        # По 4 в ряд
+        keyboard.append(day_buttons[:4])
+        keyboard.append(day_buttons[4:])
+
+        # Время (3 варианта)
+        hour = schedule.get("hour", 10)
+        time_buttons = []
+        for h in [8, 10, 12, 14, 18]:
+            mark = "v " if h == hour else "  "
+            time_buttons.append(
+                InlineKeyboardButton(f"{mark}{h:02d}:00", callback_data=f"ps_hour_{h}")
+            )
+        keyboard.append(time_buttons[:3])
+        keyboard.append(time_buttons[3:])
+
+    keyboard.append([InlineKeyboardButton("Назад", callback_data="ps_back")])
+
+    current_text = format_schedule(schedule)
+
+    await query.message.edit_text(
+        f"Расписание фотосессий: {status_emoji}\n"
+        f"Текущее: {current_text}\n\n"
+        f"Настройте расписание автоматических фотосессий:",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
