@@ -17,8 +17,8 @@ from google import genai
 from google.genai import types
 
 from modules.config import (
-    GEMINI_API_KEY, FAL_MODEL_ID, FAL_LORA_URL,
-    TIMEOUT, logger
+    GEMINI_API_KEY, FAL_MODEL_ID, FAL_LORA_URL, FAL_LORA_SCALE,
+    TRIGGER_WORD, SUBJECT_DESCRIPTION, TIMEOUT, logger
 )
 
 # ─────────────────────────────────────────────
@@ -308,7 +308,7 @@ PHOTOSHOOT PARAMETERS:
 - Camera settings: {settings}
 - Visual look: {look}
 - Lighting: {lighting_desc} ({lighting_time})
-- Subject trigger word: MLVNK
+- Subject trigger word: {trigger_word}
 
 POSES (one per image, in this order):
 {poses_list}
@@ -321,7 +321,7 @@ ORIENTATIONS (per image):
 
 RULES:
 1. Generate exactly 10 prompts, one per line, separated by |||
-2. Every prompt MUST start with "MLVNK, a man in his mid-30s with short dark brown hair, light stubble, green-blue eyes"
+2. Every prompt MUST start with "{trigger_word}, {subject_description}"
 3. Every prompt MUST end with "solo man, only one person in the scene, no other people visible, anatomically correct hands with five fingers"
 4. Each prompt should be 100-200 words, comma-separated continuous flow
 5. Include the camera, settings, and visual look in every prompt
@@ -417,6 +417,8 @@ async def generate_photoshoot_prompts(config: PhotoshootConfig) -> List[str]:
         poses_list=poses_str,
         outfits_list=outfits_str,
         orientations_list=orientations_str,
+        trigger_word=TRIGGER_WORD,
+        subject_description=SUBJECT_DESCRIPTION,
     )
 
     logger.info(f"Генерация {config.num_photos} промптов через Gemini")
@@ -495,7 +497,7 @@ async def _generate_single(prompt: str, orientation: str) -> dict:
     """Генерирует одно изображение."""
     loras = []
     if FAL_LORA_URL:
-        loras.append({"path": FAL_LORA_URL, "scale": 1.0})
+        loras.append({"path": FAL_LORA_URL, "scale": FAL_LORA_SCALE})
 
     arguments = {
         "prompt": prompt,

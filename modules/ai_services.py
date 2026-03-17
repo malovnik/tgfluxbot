@@ -15,7 +15,8 @@ from google.genai import types
 from modules.config import (
     GEMINI_API_KEY, SYSTEM_PROMPT,
     IMAGE_ANALYSIS_PROMPT, DEFAULT_GEMINI_MODEL, MAX_TOKENS,
-    TIMEOUT, MAX_RETRIES, logger, FAL_MODEL_ID, FAL_LORA_URL
+    TIMEOUT, MAX_RETRIES, logger, FAL_MODEL_ID, FAL_LORA_URL,
+    FAL_LORA_SCALE, TRIGGER_WORD
 )
 from modules.settings import get_user_settings
 
@@ -54,8 +55,9 @@ async def generate_prompt(text: str, user_id: int = None) -> Optional[str]:
 
         prompt = response.text.strip()
 
-        if not prompt.lower().startswith("mlvnk"):
-            prompt = f"MLVNK {prompt}"
+        tw = TRIGGER_WORD.lower()
+        if not prompt.lower().startswith(tw):
+            prompt = f"{TRIGGER_WORD} {prompt}"
 
         return prompt
     except Exception as e:
@@ -72,7 +74,7 @@ async def analyze_image(image_description: str, user_id: int = None) -> Optional
         user_id: ID пользователя для получения настроек
 
     Returns:
-        Промпт для создания похожего изображения с человеком 'MLVNK' или None
+        Промпт для создания похожего изображения или None
     """
     try:
         model = DEFAULT_GEMINI_MODEL
@@ -94,8 +96,9 @@ async def analyze_image(image_description: str, user_id: int = None) -> Optional
 
         prompt = response.text.strip()
 
-        if not prompt.lower().startswith("mlvnk"):
-            prompt = f"MLVNK {prompt}"
+        tw = TRIGGER_WORD.lower()
+        if not prompt.lower().startswith(tw):
+            prompt = f"{TRIGGER_WORD} {prompt}"
 
         return prompt
     except Exception as e:
@@ -232,7 +235,7 @@ async def generate_image(prompt: str, user_id: int) -> Optional[List[str]]:
     if FAL_LORA_URL:
         loras.append({
             "path": FAL_LORA_URL,
-            "scale": 1.0,
+            "scale": FAL_LORA_SCALE,
         })
 
     arguments = {
@@ -298,7 +301,7 @@ async def generate_image_with_params(prompt: str, params: dict) -> Optional[List
     if FAL_LORA_URL:
         loras.append({
             "path": FAL_LORA_URL,
-            "scale": 1.0,
+            "scale": FAL_LORA_SCALE,
         })
 
     arguments = {

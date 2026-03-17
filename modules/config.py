@@ -494,6 +494,14 @@ IMAGE_ANALYSIS_PROMPT = """
 """
 
 # Настройки для API fal.ai
-FAL_MODEL_ID = "fal-ai/flux-2/lora"  # Модель Flux 2 с LoRA на fal.ai
-FAL_LORA_URL = ""  # URL LoRA-весов (заполнится после тренировки)
-MAX_WAIT_TIME = 300  # Максимальное время ожидания генерации изображения (в секундах)
+FAL_MODEL_ID = os.getenv("FAL_MODEL_ID", "fal-ai/flux-2/lora")
+FAL_LORA_URL = os.getenv("FAL_LORA_URL", "")
+FAL_LORA_SCALE = float(os.getenv("FAL_LORA_SCALE", "1.0"))
+MAX_WAIT_TIME = int(os.getenv("MAX_WAIT_TIME", "300"))
+
+# Настройки LoRA-персонажа
+TRIGGER_WORD = os.getenv("TRIGGER_WORD", "MLVNK")
+SUBJECT_DESCRIPTION = os.getenv(
+    "SUBJECT_DESCRIPTION",
+    "a man in his mid-30s with short dark brown hair, light stubble, green-blue eyes"
+)
